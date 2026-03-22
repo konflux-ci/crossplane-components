@@ -1,0 +1,15 @@
+[submodule "functions/go-templating"]
+	path = functions/go-templating
+	url = https://github.com/crossplane-contrib/function-go-templating.git
+[submodule "functions/auto-ready"]
+	path = functions/auto-ready
+	url = https://github.com/crossplane-contrib/function-auto-ready.git
+[submodule "functions/patch-and-transform"]
+	path = functions/patch-and-transform
+	url = https://github.com/crossplane-contrib/function-patch-and-transform.git
+[submodule "providers/kubernetes"]
+	path = providers/kubernetes
+	url = https://github.com/crossplane-contrib/provider-kubernetes.git
+[submodule "core/crossplane"]
+	path = core/crossplane
+	url = https://github.com/crossplane/crossplane.git
