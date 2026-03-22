@@ -1,0 +1,16 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["github>konflux-ci/mintmaker//config/renovate/renovate.json"],
+  "git-submodules": {
+    "enabled": true,
+    "versioning": "semver"
+  },
+  "packageRules": [
+    {
+      "description": "Disable digest updates for submodules (keep patch/minor/major via tags)",
+      "matchManagers": ["git-submodules"],
+      "matchUpdateTypes": ["digest"],
+      "enabled": false
+    }
+  ]
+}
