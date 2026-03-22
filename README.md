@@ -1,6 +1,6 @@
-# crossplane-components
+# Crossplane-Components
 
-Build and release Crossplane components with Konflux for supply chain security, instead of consuming them from the community helm chart and `xpg.upbound.io` registry.
+Build and release Crossplane components with Konflux for better supply chain security.
 
 ## Repository structure
 
