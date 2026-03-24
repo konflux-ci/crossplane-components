@@ -1,0 +1,36 @@
+apiVersion: v1
+appVersion: 2.3.0-rc.0
+description: Crossplane chart aligned with Konflux-built images (defaults avoid community registries). Upstream logic matches crossplane/crossplane cluster chart.
+name: crossplane-konflux-ci
+version: 2.3.0-rc.0
+icon: https://docs.crossplane.io/android-chrome-192x192.png
+home: https://crossplane.io
+maintainers:
+  - name: Konflux CI
+    url: https://github.com/konflux-ci
+source:
+  - https://github.com/konflux-ci/crossplane-components
+  - https://github.com/crossplane/crossplane
+keywords:
+- cloud
+- infrastructure
+- services
+- application
+- database
+- cache
+- bucket
+- infra
+- app
+- ops
+- gcp
+- azure
+- aws
+- alibaba
+- cloudsql
+- rds
+- s3
+- azuredatabase
+- asparadb
+- gke
+- aks
+- eks

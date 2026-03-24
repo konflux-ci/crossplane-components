@@ -13,14 +13,14 @@ This repository uses git submodules to aggregate upstream Crossplane source:
 | `functions/auto-ready` | [function-auto-ready](https://github.com/crossplane-contrib/function-auto-ready) |
 | `functions/patch-and-transform` | [function-patch-and-transform](https://github.com/crossplane-contrib/function-patch-and-transform) |
 | `providers/kubernetes` | [provider-kubernetes](https://github.com/crossplane-contrib/provider-kubernetes) |
-| `charts/crossplane` | Helm chart (based on `core/crossplane/cluster/charts/crossplane`) |
+| `charts/crossplane` | Helm chart (synced from `core/crossplane/cluster/charts/crossplane`; defaults use Konflux-oriented image registry paths — see chart README) |
 
 ## Components
 
 - **Crossplane controller** – Core Crossplane runtime
 - **Functions** – Go Templating, Auto Ready, Patch & Transform (built as OCI xpkg packages)
 - **Kubernetes provider** – Provider package for Crossplane
-- **Helm chart** – Custom chart configured to use Konflux-built images
+- **Helm chart** – Same templates as upstream Crossplane; `values.yaml` defaults target Konflux-built controller images (`charts/crossplane/README.md` describes sync and release flow)
 
 ## Configuration
 
