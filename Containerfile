@@ -1,24 +1,11 @@
-# syntax=docker/dockerfile:1
-#
-# Reproducible build image for chart + Go components (same defaults as scripts/build-all.sh,
-# without Nix core or Docker-in-Docker xpkg builds).
-#
-# Prerequisites: from the repository root, either check out submodules on the host, or include
-# .git in the build context so RUN git submodule can fetch them during the image build.
-#
-# Examples:
-#   git submodule update --init --recursive
-#   podman build -f Containerfile -t crossplane-components-build .
-#   cid=$(podman create crossplane-components-build) && podman cp "$cid":/workspace/dist ./dist && podman rm "$cid"
-#
-#   docker build -f Containerfile -t crossplane-components-build .
-#
+FROM registry.access.redhat.com/ubi9/go-toolset:1.25.7 AS build
 
-FROM docker.io/library/golang:1.25.6-bookworm AS build
+USER root
 
-RUN apt-get update \
-	&& apt-get install -y --no-install-recommends git make curl ca-certificates bash \
-	&& rm -rf /var/lib/apt/lists/* \
+ENV PLATFORM=linux_amd64
+
+RUN dnf -y install git make ca-certificates bash \
+	&& dnf clean all \
 	&& curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
 WORKDIR /workspace
