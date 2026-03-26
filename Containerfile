@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/go-toolset:1.25.7 AS build
+FROM registry.access.redhat.com/ubi9/go-toolset:1.25.7-1774499506 AS build
 
 USER root
 
