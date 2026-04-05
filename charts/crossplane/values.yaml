@@ -1,222 +1,218 @@
-# helm-docs renders these comments into markdown. Use markdown formatting where
-# appropiate.
-#
-# -- The number of Crossplane pod `replicas` to deploy.
+# Chart values for the Crossplane controller. Lines beginning with `# --` are consumed by helm-docs.
+
+# -- Count of Crossplane controller pod replicas.
 replicas: 1
 
-# -- The number of Crossplane ReplicaSets to retain.
+# -- Maximum ReplicaSets to retain for the Crossplane Deployment (`revisionHistoryLimit`). Set `null` to omit the field and use the cluster default.
 revisionHistoryLimit: null
 
-# -- The deployment strategy for the Crossplane and RBAC Manager pods.
+# -- Deployment strategy for the Crossplane and RBAC Manager Deployments (`RollingUpdate` or `Recreate`).
 deploymentStrategy: RollingUpdate
 
 image:
-  # -- Repository for the Crossplane pod image (registry/org/repo path; no tag). Default targets Konflux-built controller output—override with your workspace image reference.
+  # -- Container image repository for the Crossplane controller (path only; tag is set separately). Default is the public image published by this project. For CI-built or private images, set this to your registry and repository (and set `image.tag` or a digest-based tag policy).
   repository: quay.io/konflux-ci/crossplane-components/crossplane
-  # -- The Crossplane image tag. Defaults to `v` + `appVersion` from `Chart.yaml`. Pin an explicit tag or digest in production; MintMaker can bump this when Konflux publishes a new image.
+  # -- Image tag for the Crossplane controller. If empty, the chart derives the tag as `v` plus `Chart.yaml` `appVersion`. For builds tagged by Git revision or digest, set this explicitly to match the image you deploy.
   tag: ""
-  # -- The image pull policy used for Crossplane and RBAC Manager pods.
+  # -- Image pull policy for the Crossplane and RBAC Manager pods.
   pullPolicy: IfNotPresent
-  # -- Do not use the {{ .image.tag }} value to compute the image uri.
+  # -- When true, the chart does not append `image.tag` when constructing the image reference (use fixed or externally managed tags).
   ignoreTag: false
 
-# -- Add `nodeSelectors` to the Crossplane pod deployment.
+# -- Node selector for the Crossplane controller pod (`spec.template.spec.nodeSelector`).
 nodeSelector: {}
-# -- Add `tolerations` to the Crossplane pod deployment.
+# -- Tolerations for the Crossplane controller pod.
 tolerations: []
-# -- Add `affinities` to the Crossplane pod deployment.
+# -- Affinity rules for the Crossplane controller pod.
 affinity: {}
-# -- Add `topologySpreadConstraints` to the Crossplane pod deployment.
+# -- Topology spread constraints for the Crossplane controller pod.
 topologySpreadConstraints: []
 
-# -- Enable `hostNetwork` for the Crossplane deployment. Caution: enabling `hostNetwork` grants the Crossplane Pod access to the host network namespace. Consider setting `dnsPolicy` to `ClusterFirstWithHostNet`.
+# -- Run the Crossplane pod with `hostNetwork: true`. Required only for exceptional networking setups; increases privilege and typically requires `dnsPolicy: ClusterFirstWithHostNet`.
 hostNetwork: false
 
-# -- Specify the `dnsPolicy` to be used by the Crossplane pod.
+# -- DNS policy for the Crossplane pod (`ClusterFirst`, `ClusterFirstWithHostNet`, etc.). Leave empty to use the cluster default for the pod.
 dnsPolicy: ""
 
-# -- Add custom `labels` to the Crossplane pod deployment.
+# -- Additional labels merged into the Crossplane Deployment pod template.
 customLabels: {}
 
-# -- Add custom `annotations` to the Crossplane pod deployment.
+# -- Additional annotations merged into the Crossplane Deployment pod template.
 customAnnotations: {}
 
 serviceAccount:
-  # -- Specifies whether Crossplane ServiceAccount should be created
+  # -- Create a dedicated ServiceAccount for the Crossplane controller.
   create: true
-  # -- Provide the name of an already created Crossplane ServiceAccount. Required when `serviceAccount.create` is `false`
+  # -- Name of an existing ServiceAccount to use when `serviceAccount.create` is false.
   name: ""
-  # -- Add custom `annotations` to the Crossplane ServiceAccount.
+  # -- Annotations applied to the Crossplane ServiceAccount (for cloud IAM or registry integration).
   customAnnotations: {}
 
-# -- Enable [leader election](https://docs.crossplane.io/latest/guides/pods/#leader-election) for the Crossplane pod.
+# -- Enable controller leader election when running multiple replicas. See Crossplane documentation on leader election.
 leaderElection: true
-# -- Add custom arguments to the Crossplane pod.
+# -- Extra container arguments appended to the Crossplane controller process.
 args: []
 
 provider:
-  # -- A list of Provider packages to install (OCI references from your Konflux registry, e.g. `quay.io/my-org/crossplane/provider-kubernetes:vX.Y.Z`).
+  # -- OCI references for Provider packages to install at chart install time (for example `registry.example.com/org/provider-kubernetes:v1.0.0`). Leave empty to install providers separately.
   packages: []
-  # -- Define entries for the default managed resource activation policy. If defined, a default MRAP will contain these activations.
+  # -- Resource patterns for the default Managed Resource Activation Policy; `["*"]` allows all managed resources unless restricted elsewhere.
   defaultActivations: ["*"]
 
 configuration:
-  # -- A list of Configuration packages to install.
+  # -- OCI references for Configuration packages to install at chart install time.
   packages: []
 
 function:
-  # -- A list of Function packages to install (OCI references from your Konflux registry).
+  # -- OCI references for Composition functions to install at chart install time.
   packages: []
 
-# -- The imagePullSecret names to add to the Crossplane ServiceAccount.
+# -- Names of `imagePullSecrets` referenced by the Crossplane ServiceAccount for private registries.
 imagePullSecrets: []
 
 registryCaBundleConfig:
-  # -- The ConfigMap name containing a custom CA bundle to enable fetching packages from registries with unknown or untrusted certificates.
+  # -- ConfigMap name holding an additional CA bundle for TLS to OCI registries that use non-public CAs.
   name: ""
-  # -- The ConfigMap key containing a custom CA bundle to enable fetching packages from registries with unknown or untrusted certificates.
+  # -- Key within that ConfigMap containing the PEM-encoded CA bundle.
   key: ""
 
 service:
-  # -- Configure annotations on the service object. Only enabled when webhooks.enabled = true
+  # -- Annotations for the Crossplane admission webhook Service. Applied only when `webhooks.enabled` is true.
   customAnnotations: {}
 
 secrets:
-  # -- Add custom annotations to Crossplane Secret resources.
+  # -- Default annotations applied to Secret resources managed or labeled by this chart where supported.
   customAnnotations: {}
 
 webhooks:
-  # -- Enable webhooks for Crossplane and installed Provider packages.
+  # -- Enable validating and mutating webhooks for Crossplane and compatible providers.
   enabled: true
-  # -- The port the webhook server listens on.
+  # -- Webhook listen port. Empty selects the chart default.
   port: ""
 
 rbacManager:
-  # -- Deploy the RBAC Manager pod and its required roles.
+  # -- Deploy the RBAC Manager and its RBAC objects.
   deploy: true
-  # -- Don't install aggregated Crossplane ClusterRoles.
+  # -- Omit installation of aggregated ClusterRoles for Crossplane (use when managing RBAC externally).
   skipAggregatedClusterRoles: false
-  # -- The number of RBAC Manager pod `replicas` to deploy.
+  # -- Replica count for the RBAC Manager Deployment.
   replicas: 1
-  # -- The number of RBAC Manager ReplicaSets to retain.
+  # -- ReplicaSet history limit for the RBAC Manager Deployment; `null` omits the field.
   revisionHistoryLimit: null
-  # -- Enable [leader election](https://docs.crossplane.io/latest/guides/pods/#leader-election) for the RBAC Manager pod.
+  # -- Enable leader election for the RBAC Manager when running multiple replicas.
   leaderElection: true
-  # -- Add custom arguments to the RBAC Manager pod.
+  # -- Extra arguments for the RBAC Manager container.
   args: []
-  # -- Add `nodeSelectors` to the RBAC Manager pod deployment.
+  # -- Node selector for the RBAC Manager pod.
   nodeSelector: {}
-  # -- Add `tolerations` to the RBAC Manager pod deployment.
+  # -- Tolerations for the RBAC Manager pod.
   tolerations: []
-  # -- Add `affinities` to the RBAC Manager pod deployment.
+  # -- Affinity for the RBAC Manager pod.
   affinity: {}
-  # -- Add `topologySpreadConstraints` to the RBAC Manager pod deployment.
+  # -- Topology spread constraints for the RBAC Manager pod.
   topologySpreadConstraints: []
 
-# -- The PriorityClass name to apply to the Crossplane and RBAC Manager pods.
+# -- PriorityClass name for Crossplane and RBAC Manager pods.
 priorityClassName: ""
 
-# -- The runtimeClassName name to apply to the Crossplane and RBAC Manager pods.
+# -- RuntimeClass name for Crossplane and RBAC Manager pods (for example gVisor or Kata).
 runtimeClassName: ""
 
 resourcesCrossplane:
   limits:
-    # -- CPU resource limits for the Crossplane pod.
+    # -- CPU limit for the Crossplane controller container.
     cpu: 500m
-    # -- Memory resource limits for the Crossplane pod.
+    # -- Memory limit for the Crossplane controller container.
     memory: 1024Mi
   requests:
-    # -- CPU resource requests for the Crossplane pod.
+    # -- CPU request for the Crossplane controller container.
     cpu: 100m
-    # -- Memory resource requests for the Crossplane pod.
+    # -- Memory request for the Crossplane controller container.
     memory: 256Mi
 
 securityContextCrossplane:
-  # -- The user ID used by the Crossplane pod.
+  # -- Numeric user ID for the Crossplane container process (`runAsUser`).
   runAsUser: 65532
-  # -- The group ID used by the Crossplane pod.
+  # -- Primary group ID for the Crossplane container process (`runAsGroup`).
   runAsGroup: 65532
-  # -- Enable `allowPrivilegeEscalation` for the Crossplane pod.
+  # -- Allow privilege escalation for the Crossplane container (should remain false in production).
   allowPrivilegeEscalation: false
-  # -- Set the Crossplane pod root file system as read-only.
+  # -- Mount the container root filesystem read-only.
   readOnlyRootFilesystem: true
 
 packageCache:
-  # -- Set to `Memory` to hold the package cache in a RAM backed file system. Useful for Crossplane development.
+  # -- `emptyDir` medium for the package cache volume (`Memory` uses tmpfs; leave empty for node disk).
   medium: ""
-  # -- The size limit for the package cache. If medium is `Memory` the `sizeLimit` can't exceed Node memory.
+  # -- Maximum size of the package cache volume; must not exceed node RAM when `medium` is `Memory`.
   sizeLimit: 20Mi
-  # -- The name of a PersistentVolumeClaim to use as the package cache. Disables the default package cache `emptyDir` Volume.
+  # -- Use an existing PVC as the package cache instead of the default `emptyDir`.
   pvc: ""
-  # -- The name of a ConfigMap to use as the package cache. Disables the default package cache `emptyDir` Volume.
+  # -- Use an existing ConfigMap volume as the package cache instead of the default `emptyDir`.
   configMap: ""
 
 functionCache:
-  # -- Set to `Memory` to hold the function cache in a RAM backed file system. Useful for Crossplane development.
+  # -- `emptyDir` medium for the function runtime cache (`Memory` for tmpfs-backed cache).
   medium: ""
-  # -- The size limit for the function cache. If medium is `Memory` the `sizeLimit` can't exceed Node memory.
+  # -- Maximum size of the function cache; constrained by node memory when `medium` is `Memory`.
   sizeLimit: 512Mi
-  # -- The name of a PersistentVolumeClaim to use as the function cache. Disables the default function cache `emptyDir` Volume.
+  # -- Use an existing PVC as the function cache instead of the default `emptyDir`.
   pvc: ""
 
 resourcesRBACManager:
   limits:
-    # -- CPU resource limits for the RBAC Manager pod.
+    # -- CPU limit for the RBAC Manager container.
     cpu: 100m
-    # -- Memory resource limits for the RBAC Manager pod.
+    # -- Memory limit for the RBAC Manager container.
     memory: 512Mi
   requests:
-    # -- CPU resource requests for the RBAC Manager pod.
+    # -- CPU request for the RBAC Manager container.
     cpu: 100m
-    # -- Memory resource requests for the RBAC Manager pod.
+    # -- Memory request for the RBAC Manager container.
     memory: 256Mi
 
 securityContextRBACManager:
-  # -- The user ID used by the RBAC Manager pod.
+  # -- Numeric user ID for the RBAC Manager container.
   runAsUser: 65532
-  # -- The group ID used by the RBAC Manager pod.
+  # -- Primary group ID for the RBAC Manager container.
   runAsGroup: 65532
-  # -- Enable `allowPrivilegeEscalation` for the RBAC Manager pod.
+  # -- Allow privilege escalation for the RBAC Manager container (should remain false in production).
   allowPrivilegeEscalation: false
-  # -- Set the RBAC Manager pod root file system as read-only.
+  # -- Mount the RBAC Manager root filesystem read-only.
   readOnlyRootFilesystem: true
 
 metrics:
-  # -- Enable Prometheus path, port and scrape annotations and expose port 8080 for both the Crossplane and RBAC Manager pods.
+  # -- Expose Prometheus metrics and scrape annotations on Crossplane and RBAC Manager pods (port 8080 by default).
   enabled: false
-  # -- The port the metrics server listens on.
+  # -- Metrics server port; empty uses the chart default.
   port: ""
 
 readiness:
-  # -- The port the readyz server listens on.
+  # -- Readiness probe HTTP port; empty uses the chart default.
   port: ""
 
-# -- Add custom environmental variables to the Crossplane pod deployment init container.
-# Replaces any `.` in a variable name with `_`. For example, `SAMPLE.KEY=value1` becomes `SAMPLE_KEY=value1`.
+# -- Extra environment variables for the Crossplane init container. Dots in names are replaced with underscores (for example `SAMPLE.KEY` becomes `SAMPLE_KEY`).
 extraEnvVarsCrossplaneInit: {}
 
-# -- Add custom environmental variables to the Crossplane pod deployment application container.
-# Replaces any `.` in a variable name with `_`. For example, `SAMPLE.KEY=value1` becomes `SAMPLE_KEY=value1`.
+# -- Extra environment variables for the Crossplane main container. Dots in names are replaced with underscores.
 extraEnvVarsCrossplane: {}
 
-# -- Add custom environmental variables to the RBAC Manager pod deployment.
-# Replaces any `.` in a variable name with `_`. For example, `SAMPLE.KEY=value1` becomes `SAMPLE_KEY=value1`.
+# -- Extra environment variables for the RBAC Manager container. Dots in names are replaced with underscores.
 extraEnvVarsRBACManager: {}
 
-# -- Add a custom `securityContext` to the Crossplane pod.
+# -- Pod-level `securityContext` merged into the Crossplane pod spec.
 podSecurityContextCrossplane: {}
 
-# -- Add a custom `securityContext` to the RBAC Manager pod.
+# -- Pod-level `securityContext` merged into the RBAC Manager pod spec.
 podSecurityContextRBACManager: {}
 
-# -- Add custom `volumes` to the Crossplane pod. Supports template expressions.
+# -- Additional volumes for the Crossplane pod; values may contain Helm template expressions.
 extraVolumesCrossplane: {}
 
-# -- Add custom `volumeMounts` to the Crossplane pod. Supports template expressions.
+# -- Additional volume mounts for the Crossplane pod; values may contain Helm template expressions.
 extraVolumeMountsCrossplane: {}
 
-# -- Add sidecar containers to the Crossplane pod. Supports template expressions.
+# -- Sidecar containers injected into the Crossplane pod; values may contain Helm template expressions.
 sidecarsCrossplane: []
 
-# -- To add arbitrary Kubernetes Objects during a Helm Install
+# -- Raw Kubernetes manifests (YAML) installed as part of this release (advanced; validate before production use).
 extraObjects: []

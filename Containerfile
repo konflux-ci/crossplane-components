@@ -1,36 +1,121 @@
-FROM registry.access.redhat.com/ubi9/go-toolset:9.7-1775724628 AS build
+# OCI image definition for the Crossplane controller used in Konflux and local builds.
+#
+# Stage `build`: produces the Helm CLI (from build-helm modules), validates and packages
+# charts/crossplane, compiles composition functions and provider-kubernetes for supply-chain
+# verification, and links the crossplane binary. Artifacts remain under /workspace/dist except
+# /tmp/crossplane, which is copied into the runtime stage.
+#
+# Final stage: Red Hat Universal Base Image (minimal) containing only the crossplane binary,
+# cluster CRDs, and webhook configuration—matching the upstream controller deployment surface.
+# Inspect the full build tree: podman build --target build …
+
+# Builder image (UBI Go toolset) pinned by digest
+ARG GO_BUILD_IMAGE=registry.access.redhat.com/ubi9/go-toolset@sha256:8c5aeac74b4b60dc2e5e44f6b639186b7ec2fec8f0eb9a36d4a32dcf8e255f52
+
+FROM ${GO_BUILD_IMAGE} AS build
 
 USER root
 
-ENV PLATFORM=linux_amd64
+ARG TARGETARCH=amd64
+ENV GOARCH=${TARGETARCH}
 
-RUN dnf -y install git make ca-certificates bash \
-	&& dnf clean all \
-	&& curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+# CROSSPLANE_VERSION: Optional value for -ldflags version injection (include leading v). Unset — read appVersion from charts/crossplane/Chart.yaml.
+ARG CROSSPLANE_VERSION=
+
+# Build tools: Konflux Hermeto mounts /cachi2/cachi2.env for Go (GOMODCACHE/GOPROXY, etc.) only—it does
+# not configure offline RPM repos. Hermetic builds have no network, so dnf cannot reach CDNs. When cachi2
+# is present, skip dnf and rely on UBI go-toolset (already includes git, make, bash, ca-certificates).
+# Local builds without /cachi2 run dnf against default repos.
+RUN set -eux; \
+	if [ -f /cachi2/cachi2.env ]; then \
+		echo "cachi2 present: skipping dnf (hermetic/offline; gomod prefetch does not supply RPM metadata)"; \
+		rpm -q git make bash ca-certificates; \
+	else \
+		dnf -y install git make ca-certificates bash && dnf clean all; \
+	fi
 
 WORKDIR /workspace
 
+# Helm CLI: single layer for module download and static build (Hermeto/cachi2: source cachi2.env when mounted).
+COPY build-helm/go.mod build-helm/go.sum /workspace/build-helm/
+WORKDIR /workspace/build-helm
+RUN if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi && \
+	go mod download && \
+	CGO_ENABLED=0 GOOS=linux go build -trimpath -o /usr/local/bin/helm helm.sh/helm/v3/cmd/helm
+
+WORKDIR /workspace
 COPY . .
 
+RUN helm version
+
+# Submodules must be present in the build context (Konflux git-clone with submodules, or host: git submodule update --init --recursive).
 RUN set -eux; \
-	if [ -e .git ]; then \
-		git submodule update --init --recursive; \
-	elif [ ! -f functions/go-templating/go.mod ] || [ ! -f providers/kubernetes/go.mod ]; then \
+	if [ ! -f core/crossplane/go.mod ] \
+		|| [ ! -f functions/go-templating/go.mod ] \
+		|| [ ! -f functions/auto-ready/go.mod ] \
+		|| [ ! -f functions/patch-and-transform/go.mod ] \
+		|| [ ! -f providers/kubernetes/go.mod ]; then \
 		echo "Missing submodule content: run 'git submodule update --init --recursive' on the host," \
-			"or build with a context that includes .git for automatic submodule fetch." >&2; \
+			"or rely on Konflux git-clone (submodules enabled)." >&2; \
 		exit 1; \
 	fi
 
-RUN mkdir -p dist/bin dist/charts
+RUN mkdir -p /workspace/dist/bin /workspace/dist/charts
 
+# Chart quality gate and distributable tarball (retained on build stage only).
 RUN helm lint charts/crossplane \
-	&& helm package charts/crossplane -d dist/charts
+	&& helm package charts/crossplane -d /workspace/dist/charts
 
-RUN cd functions/go-templating && go build -o /workspace/dist/bin/function-go-templating .
-RUN cd functions/auto-ready && go build -o /workspace/dist/bin/function-auto-ready .
-RUN cd functions/patch-and-transform && go build -o /workspace/dist/bin/function-patch-and-transform .
+# Composition functions: compile-only verification; not shipped in the runtime image.
+RUN set -eux; \
+	if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi; \
+	cd /workspace/functions/go-templating && go build -trimpath -o /workspace/dist/bin/function-go-templating .
 
-RUN cd providers/kubernetes && make go.build
+RUN set -eux; \
+	if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi; \
+	cd /workspace/functions/auto-ready && go build -trimpath -o /workspace/dist/bin/function-auto-ready .
 
-# Default image keeps /workspace/dist for `podman cp` / `docker cp`.
-CMD ["sh", "-c", "echo 'Artifacts in /workspace/dist:' && find dist -type f"]
+RUN set -eux; \
+	if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi; \
+	cd /workspace/functions/patch-and-transform && go build -trimpath -o /workspace/dist/bin/function-patch-and-transform .
+
+# provider-kubernetes controller binary: compile-only; PLATFORM matches TARGETARCH (linux_amd64, linux_arm64, …).
+RUN set -eux; \
+	if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi; \
+	cd /workspace/providers/kubernetes && make go.build PLATFORM=linux_${TARGETARCH}
+
+RUN set -eux; \
+	cp "/workspace/providers/kubernetes/_output/bin/linux_${TARGETARCH}/provider" /workspace/dist/bin/provider-kubernetes
+
+# Crossplane controller: version string embedded for crossplane --version and diagnostics.
+RUN set -eux; \
+	if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi; \
+	cd /workspace/core/crossplane; \
+	ver="${CROSSPLANE_VERSION:-}"; \
+	if [ -z "$ver" ]; then \
+		ver="v$(awk '/^appVersion:[[:space:]]+/ { sub(/^appVersion:[[:space:]]+/, ""); print; exit }' /workspace/charts/crossplane/Chart.yaml)"; \
+	fi; \
+	CGO_ENABLED=0 GOOS=linux go build -trimpath \
+		-ldflags="-s -w -X=github.com/crossplane/crossplane/v2/internal/version.version=${ver}" \
+		-o /tmp/crossplane \
+		./cmd/crossplane
+
+RUN cp /tmp/crossplane /workspace/dist/bin/crossplane
+
+FROM registry.access.redhat.com/ubi9-minimal@sha256:34880b64c07f28f64d95737f82f891516de9a3b43583f39970f7bf8e4cfa48b7
+
+LABEL name="crossplane" \
+	vendor="Red Hat, Inc." \
+	summary="Crossplane controller" \
+	description="Cloud native control plane"
+
+COPY --from=build /tmp/crossplane /usr/local/bin/crossplane
+COPY --from=build /workspace/core/crossplane/cluster/crds /crds
+COPY --from=build /workspace/core/crossplane/cluster/webhookconfigurations /webhookconfigurations
+
+USER 65532:65532
+
+# RHEL/UBI CA bundle path (not DEBIAN_FRONTEND /usr/ssl paths). Ensures Go and other TLS clients trust the system trust store.
+ENV SSL_CERT_FILE=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+
+ENTRYPOINT ["/usr/local/bin/crossplane"]
