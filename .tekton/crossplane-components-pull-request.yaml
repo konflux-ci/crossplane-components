@@ -62,12 +62,12 @@ spec:
       description: Skip checks against built image
       name: skip-checks
       type: string
-    - default: "false"
+    - default: "true"
       description: Execute the build with network isolation
       name: hermetic
       type: string
-    - default: ""
-      description: Build dependencies to be prefetched
+    - default: '[{"type":"gomod","path":"core/crossplane"},{"type":"gomod","path":"build-helm"},{"type":"gomod","path":"functions/go-templating"},{"type":"gomod","path":"functions/auto-ready"},{"type":"gomod","path":"functions/patch-and-transform"},{"type":"gomod","path":"providers/kubernetes"}]'
+      description: JSON array of Hermeto prefetch inputs (gomod) for the Containerfile build; must list every module path built offline—see prefetch-input in README and Containerfile.
       name: prefetch-input
       type: string
     - default: ""

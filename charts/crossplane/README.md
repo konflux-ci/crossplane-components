@@ -1,65 +1,69 @@
-# Crossplane Helm chart (Konflux)
+# Crossplane Helm chart (konflux-ci/crossplane-components)
 
-This chart is the upstream [Crossplane cluster chart](https://github.com/crossplane/crossplane/tree/master/cluster/charts/crossplane) vendored into [konflux-ci/crossplane-components](https://github.com/konflux-ci/crossplane-components), with defaults aimed at **Konflux-built controller images** instead of `xpkg.crossplane.io` or other community registry defaults.
+This chart vendors the upstream [Crossplane cluster chart](https://github.com/crossplane/crossplane/tree/master/cluster/charts/crossplane) into this repository. Defaults target the controller image published from this project instead of community registry paths such as `xpkg.crossplane.io`.
 
-## Staying aligned with upstream
+## Synchronizing with upstream
 
-After moving the `core/crossplane` submodule to a new tag, refresh this directory from the submodule so templates stay in lockstep:
+When the `core/crossplane` submodule is updated to a new release, refresh chart templates from upstream:
 
 ```bash
 rsync -a --delete --exclude='.git' \
   core/crossplane/cluster/charts/crossplane/ charts/crossplane/
 ```
 
-Then re-apply Konflux-specific changes:
+Re-apply repository-specific metadata afterward:
 
-- `Chart.yaml` — `version` / `appVersion` should track the Crossplane release you build in Konflux (and the image tag you publish).
-- `values.yaml` — keep `image.repository` (and any default package URLs) pointing at your workspace registry paths.
+- **`Chart.yaml`** — `version` and `appVersion` must match the Crossplane release and the controller image you publish.
+- **`values.yaml`** — Confirm `image.repository`, package defaults, and any registry-specific settings match your production registry layout.
 
-The full upstream values reference and install history are in `core/crossplane/cluster/charts/crossplane/README.md` in the submodule.
+The upstream values reference and release notes remain in `core/crossplane/cluster/charts/crossplane/README.md` inside the submodule.
 
-## Defaults
+## Default values
 
-- **`image.repository`** — defaults to `quay.io/konflux-ci/crossplane-components/crossplane`. Replace this with the image reference your Konflux **Application** / **Component** pushes (organization and repo layout vary by tenant).
-- **`image.tag`** — empty means the chart uses `v` + `Chart.yaml` `appVersion` (same behavior as upstream). Prefer explicit tags or digests for production, and let automation (for example MintMaker/Renovate) bump them when Konflux publishes new builds.
+| Area | Behavior |
+|------|----------|
+| **`image.repository`** | `quay.io/konflux-ci/crossplane-components/crossplane` — public image built from this repository. Override for private registries or alternate promotion paths. |
+| **`image.tag`** | Empty — chart uses `v` plus `Chart.yaml` `appVersion`. CI often publishes images tagged by Git revision; set `image.tag` (or use digests) to match the image running in production. |
 
-`provider.packages`, `configuration.packages`, and `function.packages` are empty by default. Use full OCI references to packages built and published from this repository (or your registry), for example:
+`provider.packages`, `configuration.packages`, and `function.packages` default to empty lists. Populate with full OCI references for packages you install with the release, for example:
 
 ```yaml
 provider:
   packages:
-    - quay.io/my-org/crossplane/provider-kubernetes:vX.Y.Z
+    - registry.example.org/org/provider-kubernetes:v1.0.0
 function:
   packages:
-    - quay.io/my-org/crossplane/function-go-templating:vX.Y.Z
+    - registry.example.org/org/function-go-templating:v1.0.0
 ```
 
-Set **`imagePullSecrets`** if your cluster must authenticate to Quay (or another private registry).
+Configure **`imagePullSecrets`** when clusters pull from authenticated registries.
 
-## Konflux / MintMaker workflow (high level)
+## Release and automation workflow
 
-1. Submodule updates (for example a new function tag) land in this repo.
-2. Konflux builds and pushes the corresponding container or `xpkg` OCI artifact.
-3. MintMaker/Renovate can open PRs to bump default image tags or package references in this chart.
-4. A Konflux **Helm chart** component can `helm package` / push the chart as an OCI artifact, sign it per your pipeline policy.
-5. Deployment repos should only pin **chart version** (or OCI chart digest), not duplicate chart source.
+1. Submodule tags move to new upstream versions as needed.
+2. Konflux (or equivalent) builds and pushes container and package artifacts.
+3. MintMaker/Renovate may propose dependency and image updates.
+4. Chart OCI artifacts can be packaged, signed, and promoted per organizational policy.
+5. Downstream environments should pin chart version or chart digest rather than copying raw chart sources.
 
-## Local checks
+## Validation
 
 ```bash
 helm lint charts/crossplane
 helm template crossplane charts/crossplane --namespace crossplane-system
 ```
 
-## Install (example)
+## Installation
 
 ```bash
 kubectl create namespace crossplane-system
 
 helm install crossplane ./charts/crossplane \
-  --namespace crossplane-system \
-  --set image.repository=quay.io/<your-org>/<your-workspace>/crossplane \
-  --set image.tag=v2.3.0-rc.0
-```
+  --namespace crossplane-system
 
-Adjust values for HA, webhooks, metrics, and pre-installed providers/functions to match your platform design.
+# Override image location for a non-default registry (example placeholders).
+helm install crossplane ./charts/crossplane \
+  --namespace crossplane-system \
+  --set image.repository='registry.example.org/org/crossplane-controller' \
+  --set image.tag='<immutable-tag-or-digest>'
+```
