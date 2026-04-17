@@ -11,6 +11,40 @@
       "matchManagers": ["git-submodules"],
       "matchUpdateTypes": ["digest"],
       "enabled": false
+    },
+    {
+      "description": "Group all Go module digest updates and auto-merge",
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["digest"],
+      "groupName": "go-digest",
+      "automerge": true
+    },
+    {
+      "description": "Group all Go module patch updates and auto-merge",
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["patch"],
+      "groupName": "go-patch",
+      "automerge": true
+    },
+    {
+      "description": "Group all Go module minor updates and auto-merge",
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["minor"],
+      "groupName": "go-minor",
+      "automerge": true
+    },
+    {
+      "description": "Group container image digest updates and auto-merge",
+      "matchManagers": ["dockerfile"],
+      "matchUpdateTypes": ["digest"],
+      "groupName": "container-digest",
+      "automerge": true
+    },
+    {
+      "description": "Auto-merge submodule patch updates",
+      "matchManagers": ["git-submodules"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
     }
   ]
 }
