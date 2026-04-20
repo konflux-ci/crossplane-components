@@ -1,0 +1,60 @@
+# Konflux / Enterprise Contract image for provider-kubernetes.
+# Parent repo path (submodule keeps upstream image Dockerfile under cluster/images/...).
+# Build context: path-context "providers" (COPY paths use kubernetes/…).
+
+ARG GO_BUILD_IMAGE=registry.access.redhat.com/ubi9/go-toolset@sha256:55673c32716cf114c19d098e585b2b51b8f7c57f543a6011d8e9aa031cd996fe
+
+FROM ${GO_BUILD_IMAGE} AS build
+
+USER root
+
+ARG TARGETARCH=amd64
+ENV GOARCH=${TARGETARCH}
+
+# Makefile uses VERSION/COMMIT_HASH when set; avoids git during image build.
+ARG PROVIDER_VERSION=v1.2.1
+ARG COMMIT_HASH=konflux
+ENV VERSION=${PROVIDER_VERSION} COMMIT_HASH=${COMMIT_HASH}
+
+WORKDIR /kubernetes
+
+COPY kubernetes/go.mod kubernetes/go.sum ./
+RUN if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi && go mod download
+
+COPY kubernetes/ ./
+
+RUN set -eux; \
+	if [ ! -f build/makelib/common.mk ]; then \
+		echo "Missing providers/kubernetes/build (nested submodule). Clone with: git submodule update --init --recursive" >&2; \
+		exit 1; \
+	fi
+
+RUN set -eux; \
+	if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi; \
+	make go.build PLATFORM=linux_${TARGETARCH}
+
+FROM registry.access.redhat.com/ubi9-minimal@sha256:fe688da81a696387ca53a4c19231e99289591f990c904ef913c51b6e87d4e4df
+
+ARG TARGETARCH=amd64
+ARG VERSION=1.2.1
+ARG RELEASE=1
+
+LABEL name="provider-kubernetes" \
+	version="${VERSION}" \
+	release="${RELEASE}" \
+	vendor="Red Hat, Inc." \
+	summary="Crossplane provider for Kubernetes objects" \
+	description="Crossplane provider that reconciles Object resources and manages arbitrary Kubernetes API objects." \
+	io.k8s.description="Crossplane provider for Kubernetes objects." \
+	io.k8s.display-name="provider-kubernetes" \
+	com.redhat.component="provider-kubernetes" \
+	url="https://github.com/konflux-ci/crossplane-components" \
+	distribution-scope="public"
+
+COPY --from=build /kubernetes/_output/bin/linux_${TARGETARCH}/provider /usr/local/bin/crossplane-kubernetes-provider
+
+USER 65532:65532
+
+ENV SSL_CERT_FILE=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+
+ENTRYPOINT ["/usr/local/bin/crossplane-kubernetes-provider"]
