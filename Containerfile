@@ -22,18 +22,6 @@ ENV GOARCH=${TARGETARCH}
 # CROSSPLANE_VERSION: Optional value for -ldflags version injection (include leading v). Unset — read appVersion from charts/crossplane/Chart.yaml.
 ARG CROSSPLANE_VERSION=
 
-# Build tools: Konflux Hermeto mounts /cachi2/cachi2.env for Go (GOMODCACHE/GOPROXY, etc.) only—it does
-# not configure offline RPM repos. Hermetic builds have no network, so dnf cannot reach CDNs. When cachi2
-# is present, skip dnf and rely on UBI go-toolset (already includes git, make, bash, ca-certificates).
-# Local builds without /cachi2 run dnf against default repos.
-RUN set -eux; \
-	if [ -f /cachi2/cachi2.env ]; then \
-		echo "cachi2 present: skipping dnf (hermetic/offline; gomod prefetch does not supply RPM metadata)"; \
-		rpm -q git make bash ca-certificates; \
-	else \
-		dnf -y install git make ca-certificates bash && dnf clean all; \
-	fi
-
 WORKDIR /workspace
 
 # Helm CLI: single layer for module download and static build (Hermeto/cachi2: source cachi2.env when mounted).

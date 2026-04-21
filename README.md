@@ -74,7 +74,14 @@ Rebuild the UBI base digests in `Containerfile` only when intentionally moving t
 
 ### Hermetic / prefetch (Konflux)
 
-Default `prefetch-input` lists every `gomod` root the `Containerfile` compiles: `core/crossplane`, `build-helm`, `functions/go-templating`, `functions/auto-ready`, `functions/patch-and-transform`, `providers/kubernetes`. Hermeto produces `/cachi2` with `cachi2.env` for **Go modules only** (not offline `dnf` repos). In hermetic builds the `Containerfile` therefore **skips `dnf`** when `/cachi2/cachi2.env` exists and uses packages already in the pinned `ubi9/go-toolset` image; local builds without cachi2 run `dnf` as usual.
+Hermeto prefetches **Go modules only** (`/cachi2/cachi2.env`).
+Build tools (`git`, `make`, `bash`, `ca-certificates`) come from the
+pinned `ubi9/go-toolset` base image.
+
+`prefetch-input` lists every `gomod` root compiled by the `Containerfile`:
+`core/crossplane`, `build-helm`, `functions/go-templating`,
+`functions/auto-ready`, `functions/patch-and-transform`,
+`providers/kubernetes`.
 
 Offline local reproduction requires a full gomod cachi2 tree covering all listed paths. Partial caches fail at the first missing module.
 
@@ -82,4 +89,4 @@ Offline local reproduction requires a full gomod cachi2 tree covering all listed
 
 The pipeline parameter `hermetic` (default `"true"`) is passed to the buildah and related tasks for **network-isolated** builds; it is not a `Containerfile` build-arg.
 
-Local analogue: `podman build -f Containerfile .` (networked, no cachi2) vs `podman build --network=none` with a complete gomod cachi2 tree at `/cachi2` (RPM `dnf` step is skipped when `cachi2.env` is present).
+Local analogue: `podman build -f Containerfile .` (networked, no cachi2) vs `podman build --network=none` with a complete gomod cachi2 tree at `/cachi2`.
