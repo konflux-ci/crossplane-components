@@ -1,0 +1,50 @@
+# Konflux / Enterprise Contract image for function-go-templating.
+# Parent repo path (submodule stays upstream Dockerfile for local/CI).
+# Build context: path-context "functions" (COPY paths use go-templating/…).
+
+ARG GO_BUILD_IMAGE=registry.access.redhat.com/ubi9/go-toolset@sha256:55673c32716cf114c19d098e585b2b51b8f7c57f543a6011d8e9aa031cd996fe
+
+FROM ${GO_BUILD_IMAGE} AS build
+
+USER root
+
+ARG TARGETARCH=amd64
+ENV CGO_ENABLED=0 GOARCH=${TARGETARCH}
+
+WORKDIR /fn
+
+COPY go-templating/go.mod go-templating/go.sum ./
+RUN if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi && go mod download
+
+COPY go-templating/ ./
+RUN if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi && \
+	CGO_ENABLED=0 GOOS=linux go build -trimpath -o /function .
+
+FROM registry.access.redhat.com/ubi9-minimal@sha256:fe688da81a696387ca53a4c19231e99289591f990c904ef913c51b6e87d4e4df
+
+ARG VERSION=0.12.0
+ARG RELEASE=1
+
+LABEL name="function-go-templating" \
+	version="${VERSION}" \
+	release="${RELEASE}" \
+	vendor="Red Hat, Inc." \
+	summary="Crossplane composition function (Go templates)" \
+	description="A Crossplane composition function that composes resources using Go templates." \
+	io.k8s.description="Crossplane composition function that composes resources using Go templates." \
+	io.k8s.display-name="function-go-templating" \
+	com.redhat.component="function-go-templating" \
+	url="https://github.com/konflux-ci/crossplane-components" \
+	distribution-scope="public"
+
+WORKDIR /
+
+COPY --from=build /function /function
+
+EXPOSE 9443
+
+USER 65532:65532
+
+ENV SSL_CERT_FILE=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+
+ENTRYPOINT ["/function"]
