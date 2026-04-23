@@ -2,7 +2,7 @@
 # Parent repo path (submodule keeps upstream image Dockerfile under cluster/images/...).
 # Build context: path-context "providers" (COPY paths use kubernetes/…).
 
-ARG GO_BUILD_IMAGE=registry.access.redhat.com/ubi9/go-toolset@sha256:55673c32716cf114c19d098e585b2b51b8f7c57f543a6011d8e9aa031cd996fe
+ARG GO_BUILD_IMAGE=registry.access.redhat.com/ubi9/go-toolset@sha256:75ecb48dfaec6655bd589091902e3b9328c300befba34cb06fc5e7323099e17d
 
 FROM ${GO_BUILD_IMAGE} AS build
 
@@ -33,7 +33,7 @@ RUN set -eux; \
 	if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi; \
 	make go.build PLATFORM=linux_${TARGETARCH}
 
-FROM registry.access.redhat.com/ubi9-minimal@sha256:fe688da81a696387ca53a4c19231e99289591f990c904ef913c51b6e87d4e4df
+FROM registry.access.redhat.com/ubi9-minimal@sha256:7d4e47500f28ac3a2bff06c25eff9127ff21048538ae03ce240d57cf756acd00
 
 ARG TARGETARCH=amd64
 ARG VERSION=1.2.1
