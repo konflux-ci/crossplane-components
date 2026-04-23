@@ -1,0 +1,50 @@
+# Konflux / Enterprise Contract image for function-auto-ready.
+# Parent repo path (submodule keeps upstream Dockerfile for local/CI).
+# Build context: path-context "functions" (COPY paths use auto-ready/…).
+
+ARG GO_BUILD_IMAGE=registry.access.redhat.com/ubi9/go-toolset@sha256:55673c32716cf114c19d098e585b2b51b8f7c57f543a6011d8e9aa031cd996fe
+
+FROM ${GO_BUILD_IMAGE} AS build
+
+USER root
+
+ARG TARGETARCH=amd64
+ENV CGO_ENABLED=0 GOARCH=${TARGETARCH}
+
+WORKDIR /fn
+
+COPY auto-ready/go.mod auto-ready/go.sum ./
+RUN if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi && go mod download
+
+COPY auto-ready/ ./
+RUN if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi && \
+	CGO_ENABLED=0 GOOS=linux go build -trimpath -o /function .
+
+FROM registry.access.redhat.com/ubi9-minimal@sha256:fe688da81a696387ca53a4c19231e99289591f990c904ef913c51b6e87d4e4df
+
+ARG VERSION=0.6.3
+ARG RELEASE=1
+
+LABEL name="function-auto-ready" \
+	version="${VERSION}" \
+	release="${RELEASE}" \
+	vendor="Red Hat, Inc." \
+	summary="Crossplane composition function (auto-ready)" \
+	description="Composition function that detects when composed resources are ready using Kubernetes health checks." \
+	io.k8s.description="Crossplane composition function that marks XRs ready when composed resources are ready." \
+	io.k8s.display-name="function-auto-ready" \
+	com.redhat.component="function-auto-ready" \
+	url="https://github.com/konflux-ci/crossplane-components" \
+	distribution-scope="public"
+
+WORKDIR /
+
+COPY --from=build /function /function
+
+EXPOSE 9443
+
+USER 65532:65532
+
+ENV SSL_CERT_FILE=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+
+ENTRYPOINT ["/function"]
