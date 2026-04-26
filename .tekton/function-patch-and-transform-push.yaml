@@ -7,9 +7,7 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "main" && ( "./functions/patch-and-transform/***".pathChanged() || ".tekton/function-patch-and-transform-push.yaml".pathChanged()
-      || "./functions/Dockerfile.konflux.function-patch-and-transform".pathChanged() )
+    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch == "main"
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: crossplane-components
