@@ -11,7 +11,7 @@ deploymentStrategy: RollingUpdate
 
 image:
   # -- Container image repository for the Crossplane controller (path only; tag is set separately). Default is the public image published by this project. For CI-built or private images, set this to your registry and repository (and set `image.tag` or a digest-based tag policy).
-  repository: quay.io/konflux-ci/crossplane-components/crossplane
+  repository: quay.io/konflux-ci/crossplane-components
   # -- Image tag for the Crossplane controller. If empty, the chart derives the tag as `v` plus `Chart.yaml` `appVersion`. For builds tagged by Git revision or digest, set this explicitly to match the image you deploy.
   tag: ""
   # -- Image pull policy for the Crossplane and RBAC Manager pods.
@@ -55,7 +55,8 @@ args: []
 
 provider:
   # -- OCI references for Provider packages to install at chart install time (for example `registry.example.com/org/provider-kubernetes:v1.0.0`). Leave empty to install providers separately.
-  packages: []
+  packages:
+    - quay.io/konflux-ci/crossplane-components/provider-kubernetes
   # -- Resource patterns for the default Managed Resource Activation Policy; `["*"]` allows all managed resources unless restricted elsewhere.
   defaultActivations: ["*"]
 
@@ -65,7 +66,10 @@ configuration:
 
 function:
   # -- OCI references for Composition functions to install at chart install time.
-  packages: []
+  packages:
+    - quay.io/konflux-ci/crossplane-components/function-go-templating
+    - quay.io/konflux-ci/crossplane-components/function-auto-ready
+    - quay.io/konflux-ci/crossplane-components/function-patch-and-transform
 
 # -- Names of `imagePullSecrets` referenced by the Crossplane ServiceAccount for private registries.
 imagePullSecrets: []
