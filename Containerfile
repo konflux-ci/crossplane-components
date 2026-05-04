@@ -90,7 +90,7 @@ RUN set -eux; \
 
 RUN cp /tmp/crossplane /workspace/dist/bin/crossplane
 
-FROM registry.access.redhat.com/ubi9-minimal@sha256:7d4e47500f28ac3a2bff06c25eff9127ff21048538ae03ce240d57cf756acd00
+FROM registry.access.redhat.com/ubi9-minimal@sha256:8d0a8fb39ec907e8ca62cdd24b62a63ca49a30fe465798a360741fde58437a23
 
 LABEL name="crossplane" \
 	vendor="Red Hat, Inc." \
