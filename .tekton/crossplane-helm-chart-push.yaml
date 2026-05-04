@@ -1,0 +1,328 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  annotations:
+    build.appstudio.openshift.io/repo: https://github.com/konflux-ci/crossplane-components?rev={{revision}}
+    build.appstudio.redhat.com/commit_sha: '{{revision}}'
+    build.appstudio.redhat.com/target_branch: '{{target_branch}}'
+    pipelinesascode.tekton.dev/cancel-in-progress: "false"
+    pipelinesascode.tekton.dev/max-keep-runs: "3"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch == "main"
+  creationTimestamp: null
+  labels:
+    appstudio.openshift.io/application: crossplane-components
+    appstudio.openshift.io/component: crossplane-helm-chart
+    pipelines.appstudio.openshift.io/type: build
+  name: crossplane-helm-chart-on-push
+  namespace: konflux-vanguard-tenant
+spec:
+  params:
+    - name: git-url
+      value: '{{source_url}}'
+    - name: revision
+      value: '{{revision}}'
+    - name: output-image
+      value: quay.io/redhat-user-workloads/konflux-vanguard-tenant/crossplane-components/crossplane-helm:{{revision}}
+    - name: dockerfile
+      value: charts/Dockerfile.konflux.crossplane-chart
+    - name: path-context
+      value: charts/crossplane
+    - name: hermetic
+      value: "false"
+    - name: prefetch-input
+      value: '[{"type":"gomod","path":"build-helm"}]'
+  pipelineSpec:
+    description: |
+      This pipeline is ideal for building Helm charts while maintaining trust after pipeline customization.
+    params:
+      - description: Source Repository URL
+        name: git-url
+        type: string
+      - default: ""
+        description: Revision of the Source Repository
+        name: revision
+        type: string
+      - description: Fully Qualified Output Image
+        name: output-image
+        type: string
+      - default: .
+        description:
+          Path to the source code of an application's component from where
+          to build image.
+        name: path-context
+        type: string
+      - default: Dockerfile
+        description:
+          Path to the Dockerfile inside the context specified by parameter
+          path-context
+        name: dockerfile
+        type: string
+      - default: "false"
+        description: Skip checks against built image
+        name: skip-checks
+        type: string
+      - default: "false"
+        description: Execute the build with network isolation
+        name: hermetic
+        type: string
+      - default: '[{"type":"gomod","path":"build-helm"}]'
+        description: JSON array of Hermeto prefetch inputs (gomod under build-helm, same module as charts/Dockerfile.konflux.crossplane-chart).
+        name: prefetch-input
+        type: string
+      - default: ""
+        description:
+          Image tag expiration time, time values could be something like
+          1h, 2d, 3w for hours, days, and weeks, respectively.
+        name: image-expires-after
+        type: string
+      - default: "false"
+        description: Build a source image.
+        name: build-source-image
+        type: string
+      - default: []
+        description: Array of --build-arg values ("arg=value" strings) for buildah
+        name: build-args
+        type: array
+      - default: ""
+        description: Path to a file with build arguments for buildah, see https://www.mankier.com/1/buildah-build#--build-arg-file
+        name: build-args-file
+        type: string
+      - default: "false"
+        description:
+          Whether to enable privileged mode, should be used only with remote
+          VMs
+        name: privileged-nested
+        type: string
+      - name: enable-package-registry-proxy
+        default: 'true'
+        description: Use the package registry proxy when prefetching dependencies
+        type: string
+    results:
+      - description: ""
+        name: IMAGE_URL
+        value: $(tasks.build-helm-chart.results.IMAGE_URL)
+      - description: ""
+        name: IMAGE_DIGEST
+        value: $(tasks.build-helm-chart.results.IMAGE_DIGEST)
+      - description: ""
+        name: CHAINS-GIT_URL
+        value: $(tasks.clone-repository.results.url)
+      - description: ""
+        name: CHAINS-GIT_COMMIT
+        value: $(tasks.clone-repository.results.commit)
+    tasks:
+      - name: init
+        taskRef:
+          params:
+            - name: name
+              value: init
+            - name: bundle
+              value: quay.io/konflux-ci/tekton-catalog/task-init:0.4@sha256:b797dd453ddad669365de6de4649e3a9e37e77aa26eb9862ca079a36cbfe64a4
+            - name: kind
+              value: task
+          resolver: bundles
+      - name: clone-repository
+        params:
+          - name: url
+            value: $(params.git-url)
+          - name: revision
+            value: $(params.revision)
+          - name: ociStorage
+            value: $(params.output-image).git
+          - name: ociArtifactExpiresAfter
+            value: $(params.image-expires-after)
+        runAfter:
+          - init
+        taskRef:
+          params:
+            - name: name
+              value: git-clone-oci-ta
+            - name: bundle
+              value: quay.io/konflux-ci/tekton-catalog/task-git-clone-oci-ta:0.1@sha256:13d49df7dc9ae301627e45f95a236011422996152f1bea46cd60217b0f057407
+            - name: kind
+              value: task
+          resolver: bundles
+        workspaces:
+          - name: basic-auth
+            workspace: git-auth
+      - name: prefetch-dependencies
+        params:
+          - name: input
+            value: $(params.prefetch-input)
+          - name: SOURCE_ARTIFACT
+            value: $(tasks.clone-repository.results.SOURCE_ARTIFACT)
+          - name: ociStorage
+            value: $(params.output-image).prefetch
+          - name: ociArtifactExpiresAfter
+            value: $(params.image-expires-after)
+          - name: enable-package-registry-proxy
+            value: $(params.enable-package-registry-proxy)
+        runAfter:
+          - clone-repository
+        taskRef:
+          params:
+            - name: name
+              value: prefetch-dependencies-oci-ta
+            - name: bundle
+              value: quay.io/konflux-ci/tekton-catalog/task-prefetch-dependencies-oci-ta:0.3@sha256:1b209c0d93e52e418f3e6cd4b4fd915a84e4bd7f68e1cfd0d6446133540d7f43
+            - name: kind
+              value: task
+          resolver: bundles
+        workspaces:
+          - name: git-basic-auth
+            workspace: git-auth
+          - name: netrc
+            workspace: netrc
+      - name: build-helm-chart
+        params:
+          - name: IMAGE
+            value: $(params.output-image)
+          - name: CHART_CONTEXT
+            value: $(params.path-context)
+          - name: COMMIT_SHA
+            value: $(tasks.clone-repository.results.commit)
+          - name: SOURCE_ARTIFACT
+            value: $(tasks.clone-repository.results.SOURCE_ARTIFACT)
+          - name: IMAGE_MAPPINGS
+            value: |
+              [
+                {
+                  "source": "quay.io/konflux-ci/crossplane-components/provider-kubernetes",
+                  "target": "quay.io/redhat-user-workloads/konflux-vanguard-tenant/crossplane-components/provider-kubernetes:{{revision}}"
+                },
+                {
+                  "source": "quay.io/konflux-ci/crossplane-components/function-go-templating",
+                  "target": "quay.io/redhat-user-workloads/konflux-vanguard-tenant/crossplane-components/function-go-templating:{{revision}}"
+                },
+                {
+                  "source": "quay.io/konflux-ci/crossplane-components/function-auto-ready",
+                  "target": "quay.io/redhat-user-workloads/konflux-vanguard-tenant/crossplane-components/function-auto-ready:{{revision}}"
+                },
+                {
+                  "source": "quay.io/konflux-ci/crossplane-components/function-patch-and-transform",
+                  "target": "quay.io/redhat-user-workloads/konflux-vanguard-tenant/crossplane-components/function-patch-and-transform:{{revision}}"
+                },
+                {
+                  "source": "quay.io/konflux-ci/crossplane-components",
+                  "target": "quay.io/redhat-user-workloads/konflux-vanguard-tenant/crossplane-components:{{revision}}"
+                }
+              ]
+          - name: VERSION_SUFFIX
+            value: ""
+          - name: VALUES_FILES
+            value:
+              - "values.yaml"
+        runAfter:
+          - clone-repository
+        taskRef:
+          params:
+            - name: name
+              value: build-helm-chart-oci-ta
+            - name: bundle
+              value: quay.io/konflux-ci/tekton-catalog/task-build-helm-chart-oci-ta:0.3@sha256:5f00a1c3730a5ad83e510df951d0b98386bac9c0e1a73f746b72b3fcad7204b9
+            - name: kind
+              value: task
+          resolver: bundles
+      - name: build-source-image
+        params:
+          - name: BINARY_IMAGE
+            value: $(tasks.build-helm-chart.results.IMAGE_URL)
+          - name: BINARY_IMAGE_DIGEST
+            value: $(tasks.build-helm-chart.results.IMAGE_DIGEST)
+          - name: SOURCE_ARTIFACT
+            value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
+          - name: CACHI2_ARTIFACT
+            value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
+        runAfter:
+          - build-helm-chart
+          - prefetch-dependencies
+        taskRef:
+          params:
+            - name: name
+              value: source-build-oci-ta
+            - name: bundle
+              value: quay.io/konflux-ci/tekton-catalog/task-source-build-oci-ta:0.3@sha256:0917cfc7772e82cb8e74743c2104f43bcf2596aceafe87eec6fce69a8cac5f06
+            - name: kind
+              value: task
+          resolver: bundles
+        when:
+          - input: $(params.build-source-image)
+            operator: in
+            values:
+              - "true"
+      - name: sast-shell-check
+        params:
+        - name: image-digest
+          value: $(tasks.build-helm-chart.results.IMAGE_DIGEST)
+        - name: image-url
+          value: $(tasks.build-helm-chart.results.IMAGE_URL)
+        - name: SOURCE_ARTIFACT
+          value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
+        - name: CACHI2_ARTIFACT
+          value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
+        runAfter:
+        - build-helm-chart
+        - prefetch-dependencies
+        taskRef:
+          params:
+          - name: name
+            value: sast-shell-check-oci-ta
+          - name: bundle
+            value: quay.io/konflux-ci/tekton-catalog/task-sast-shell-check-oci-ta:0.1@sha256:c4ef47e3b4e0508572d266fb745be7e374c29dc02580328cbe9f4d472a8aca57
+          - name: kind
+            value: task
+          resolver: bundles
+        when:
+        - input: $(params.skip-checks)
+          operator: in
+          values:
+          - "false"
+      - name: sast-unicode-check
+        params:
+        - name: image-digest
+          value: $(tasks.build-helm-chart.results.IMAGE_DIGEST)
+        - name: image-url
+          value: $(tasks.build-helm-chart.results.IMAGE_URL)
+        - name: SOURCE_ARTIFACT
+          value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
+        - name: CACHI2_ARTIFACT
+          value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
+        runAfter:
+        - build-helm-chart
+        - prefetch-dependencies
+        taskRef:
+          params:
+          - name: name
+            value: sast-unicode-check-oci-ta
+          - name: bundle
+            value: quay.io/konflux-ci/tekton-catalog/task-sast-unicode-check-oci-ta:0.4@sha256:0854d9261760b2dc8f092569739685a5ab0a5c620e9cb8c1b78fef9e2d077a29
+          - name: kind
+            value: task
+          resolver: bundles
+        when:
+        - input: $(params.skip-checks)
+          operator: in
+          values:
+          - "false"
+    workspaces:
+      - name: git-auth
+        optional: true
+      - name: netrc
+        optional: true
+  taskRunSpecs:
+    - pipelineTaskName: build-helm-chart
+      stepSpecs:
+        - name: use-trusted-artifact
+          computeResources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-crossplane-helm
+  workspaces:
+    - name: git-auth
+      secret:
+        secretName: "{{ git_auth_secret }}"
+status: {}
