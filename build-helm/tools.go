@@ -3,4 +3,4 @@
 // used to compile the Helm CLI in the Containerfile. This package is not imported at runtime.
 package tools
 
-import _ "helm.sh/helm/v3/cmd/helm"
+import _ "helm.sh/helm/v4/cmd/helm"
