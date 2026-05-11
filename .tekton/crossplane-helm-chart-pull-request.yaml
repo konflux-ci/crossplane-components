@@ -105,6 +105,10 @@ spec:
         default: 'true'
         description: Use the package registry proxy when prefetching dependencies
         type: string
+      - name: sast-target-dirs
+        type: string
+        default: .
+        description: Target directories to scan with SAST tools. Multiple values should be separated with commas.
     results:
       - description: ""
         name: IMAGE_URL
@@ -128,7 +132,7 @@ spec:
             - name: name
               value: init
             - name: bundle
-              value: quay.io/konflux-ci/tekton-catalog/task-init:0.4@sha256:b797dd453ddad669365de6de4649e3a9e37e77aa26eb9862ca079a36cbfe64a4
+              value: quay.io/konflux-ci/tekton-catalog/task-init:0.4@sha256:5a423246792ac501ea279229b42ee57da9927da441c04b5c9ff86817b0856b08
             - name: kind
               value: task
           resolver: bundles
@@ -175,7 +179,7 @@ spec:
             - name: name
               value: prefetch-dependencies-oci-ta
             - name: bundle
-              value: quay.io/konflux-ci/tekton-catalog/task-prefetch-dependencies-oci-ta:0.3@sha256:1b209c0d93e52e418f3e6cd4b4fd915a84e4bd7f68e1cfd0d6446133540d7f43
+              value: quay.io/konflux-ci/tekton-catalog/task-prefetch-dependencies-oci-ta:0.3@sha256:a2efbcdcecfa5293a622eb356a18f5c88e5714046b214fe8730b43b1a7dbb77d
             - name: kind
               value: task
           resolver: bundles
@@ -230,7 +234,7 @@ spec:
             - name: name
               value: build-helm-chart-oci-ta
             - name: bundle
-              value: quay.io/konflux-ci/tekton-catalog/task-build-helm-chart-oci-ta:0.3@sha256:5f00a1c3730a5ad83e510df951d0b98386bac9c0e1a73f746b72b3fcad7204b9
+              value: quay.io/konflux-ci/tekton-catalog/task-build-helm-chart-oci-ta:0.3@sha256:00a4ca17c9fa0d0494c3417fc695bc72714e3e10a7c80ade76c77230d32455d1
             - name: kind
               value: task
           resolver: bundles
@@ -271,6 +275,8 @@ spec:
           value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
         - name: CACHI2_ARTIFACT
           value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
+        - name: TARGET_DIRS
+          value: $(params.sast-target-dirs)
         runAfter:
         - build-helm-chart
         - prefetch-dependencies
@@ -298,6 +304,8 @@ spec:
           value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
         - name: CACHI2_ARTIFACT
           value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
+        - name: TARGET_DIRS
+          value: $(params.sast-target-dirs)
         runAfter:
         - build-helm-chart
         - prefetch-dependencies
@@ -306,7 +314,7 @@ spec:
           - name: name
             value: sast-unicode-check-oci-ta
           - name: bundle
-            value: quay.io/konflux-ci/tekton-catalog/task-sast-unicode-check-oci-ta:0.4@sha256:0854d9261760b2dc8f092569739685a5ab0a5c620e9cb8c1b78fef9e2d077a29
+            value: quay.io/konflux-ci/tekton-catalog/task-sast-unicode-check-oci-ta:0.4@sha256:90efa582de7770d55102b74014a765cd16a25a56f2cf644b56a788c70c4dc749
           - name: kind
             value: task
           resolver: bundles
