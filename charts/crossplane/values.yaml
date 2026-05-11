@@ -12,12 +12,12 @@ deploymentStrategy: RollingUpdate
 image:
   # -- Container image repository for the Crossplane controller (path only; tag is set separately). Default is the public image published by this project. For CI-built or private images, set this to your registry and repository (and set `image.tag` or a digest-based tag policy).
   repository: quay.io/konflux-ci/crossplane-components
-  # -- Image tag for the Crossplane controller. If empty, the chart derives the tag as `v` plus `Chart.yaml` `appVersion`. For builds tagged by Git revision or digest, set this explicitly to match the image you deploy.
+  # -- Image tag for the Crossplane controller. Has no effect when `image.ignoreTag` is `true` (the default). When `ignoreTag` is `false` and this field is empty, the chart derives the tag as `v` plus `Chart.yaml` `appVersion`.
   tag: ""
   # -- Image pull policy for the Crossplane and RBAC Manager pods.
   pullPolicy: IfNotPresent
-  # -- When true, the chart does not append `image.tag` when constructing the image reference (use fixed or externally managed tags).
-  ignoreTag: false
+  # -- When true (default), the chart omits any tag suffix when constructing the image reference, relying on the repository value alone (digest-pinned or externally managed references). Set to `false` to let the chart append `image.tag` (or fall back to `v{appVersion}`).
+  ignoreTag: true
 
 # -- Node selector for the Crossplane controller pod (`spec.template.spec.nodeSelector`).
 nodeSelector: {}
@@ -54,9 +54,9 @@ leaderElection: true
 args: []
 
 provider:
-  # -- OCI references for Provider packages to install at chart install time (for example `registry.example.com/org/provider-kubernetes:v1.0.0`). Leave empty to install providers separately.
+  # -- OCI references for Provider packages to install at chart install time (for example `registry.example.com/org/provider-kubernetes:v1.0.0`). Untagged refs are pinned to `Chart.yaml` `appVersion`.
   packages:
-    - quay.io/konflux-ci/crossplane-components/provider-kubernetes
+    - quay.io/konflux-ci/crossplane-components/provider-kubernetes@sha256:8d6a88f1503d21e098816b44f0dc0e16867449c24a7441c5c5c374d9327b0715
   # -- Resource patterns for the default Managed Resource Activation Policy; `["*"]` allows all managed resources unless restricted elsewhere.
   defaultActivations: ["*"]
 
@@ -65,11 +65,11 @@ configuration:
   packages: []
 
 function:
-  # -- OCI references for Composition functions to install at chart install time.
+  # -- OCI references for Composition functions to install at chart install time. Untagged refs are pinned to `Chart.yaml` `appVersion`.
   packages:
-    - quay.io/konflux-ci/crossplane-components/function-go-templating
-    - quay.io/konflux-ci/crossplane-components/function-auto-ready
-    - quay.io/konflux-ci/crossplane-components/function-patch-and-transform
+    - quay.io/konflux-ci/crossplane-components/function-go-templating@sha256:eb7e0da7546b6d480e1b9c1b604450602cf3c0866d7ee9f16192c138b3c1a8ea
+    - quay.io/konflux-ci/crossplane-components/function-auto-ready@sha256:368e1ecf89cae0b77bb2c25492fc233d26a7590e58c513517151eb11331a35dd
+    - quay.io/konflux-ci/crossplane-components/function-patch-and-transform@sha256:5837d4622a41465d1666a8b6a616e6956f74a1794be2d351f669a0c492cdf5ca
 
 # -- Names of `imagePullSecrets` referenced by the Crossplane ServiceAccount for private registries.
 imagePullSecrets: []

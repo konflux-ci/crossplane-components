@@ -23,7 +23,8 @@ The upstream values reference and release notes remain in `core/crossplane/clust
 | Area | Behavior |
 |------|----------|
 | **`image.repository`** | `quay.io/konflux-ci/crossplane-components/crossplane` — public image built from this repository. Override for private registries or alternate promotion paths. |
-| **`image.tag`** | Empty — chart uses `v` plus `Chart.yaml` `appVersion`. CI often publishes images tagged by Git revision; set `image.tag` (or use digests) to match the image running in production. |
+| **`image.tag`** | Empty — not appended to the image reference by default (see `ignoreTag`). |
+| **`image.ignoreTag`** | `true` — the chart uses `image.repository` as-is without appending any tag. This is the expected default for digest-pinned or externally managed image references. Set to `false` to re-enable tag-based resolution (empty `image.tag` falls back to `v{appVersion}`). |
 
 `provider.packages`, `configuration.packages`, and `function.packages` default to empty lists. Populate with full OCI references for packages you install with the release, for example:
 
