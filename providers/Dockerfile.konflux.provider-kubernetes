@@ -33,6 +33,10 @@ RUN set -eux; \
 	if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi; \
 	make go.build PLATFORM=linux_${TARGETARCH}
 
+# Assemble xpkg package stream: Crossplane reads a single /package.yaml
+# containing the provider metadata and all CRDs as a multi-document YAML stream.
+RUN sed -s '1i---' package/crossplane.yaml package/crds/*.yaml > /tmp/package.yaml
+
 FROM registry.access.redhat.com/ubi9-minimal@sha256:12db9874bd753eb98b1ab3d840e75de5d6842ac0604fbd68c012adefe97140be
 
 ARG TARGETARCH=amd64
@@ -52,6 +56,7 @@ LABEL name="provider-kubernetes" \
 	distribution-scope="public"
 
 COPY --from=build /kubernetes/_output/bin/linux_${TARGETARCH}/provider /usr/local/bin/crossplane-kubernetes-provider
+COPY --from=build /tmp/package.yaml /package.yaml
 
 USER 65532:65532
 
