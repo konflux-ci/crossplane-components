@@ -20,6 +20,10 @@ COPY auto-ready/ ./
 RUN if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi && \
 	CGO_ENABLED=0 GOOS=linux go build -trimpath -o /function .
 
+# Assemble xpkg package stream: Crossplane reads a single /package.yaml
+# containing the function metadata as a YAML stream.
+RUN sed -s '1i---' package/crossplane.yaml > /tmp/package.yaml
+
 FROM registry.access.redhat.com/ubi9-minimal@sha256:12db9874bd753eb98b1ab3d840e75de5d6842ac0604fbd68c012adefe97140be
 
 ARG VERSION=0.6.3
@@ -40,6 +44,7 @@ LABEL name="function-auto-ready" \
 WORKDIR /
 
 COPY --from=build /function /function
+COPY --from=build /tmp/package.yaml /package.yaml
 
 EXPOSE 9443
 
