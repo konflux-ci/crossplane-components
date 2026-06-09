@@ -27,6 +27,7 @@ There is no root `Makefile`. The build contract is `Containerfile` + `.tekton/` 
 | `.tekton/` | 12 Konflux PipelineRuns (push + pull-request for controller, chart, provider, three functions) |
 | `renovate.json` | MintMaker/Renovate config driving automated dependency updates |
 | `.github/workflows/fullsend.yaml` | Fullsend shim for agent-assisted automation |
+| `skills/` | Canonical agent skill definitions — one `SKILL.md` per workflow |
 
 ## Setup Commands
 
@@ -61,7 +62,7 @@ podman run --rm localhost/crossplane-components:local --help
 
 ### Hermetic / prefetch (Konflux)
 
-Konflux builds run with `hermetic: "true"` by default — the network is cut after Cachi2 prefetches Go modules. Every `gomod` root compiled by `Containerfile` must appear in `prefetch-input` in the relevant `.tekton/` PipelineRun:
+The `crossplane-components-*` pipelines run with `hermetic: "true"` — the network is cut after Cachi2 prefetches Go modules. Function, provider, and Helm chart pipelines default to `hermetic: "false"`. Every `gomod` root compiled by `Containerfile` must appear in `prefetch-input` in the relevant `.tekton/` PipelineRun:
 
 ```
 core/crossplane
@@ -76,7 +77,7 @@ providers/kubernetes
 
 ## Validation
 
-There is no standalone test suite. Use these checks before opening a PR:
+There is no standalone test suite. Use these checks before opening a PR (see `skills/pr-checklist/` for the full checklist):
 
 ```bash
 # Chart structure and rendering
@@ -102,13 +103,15 @@ Twelve PipelineRuns in `.tekton/` fire on push and pull-request:
 | function-auto-ready | `function-auto-ready-` |
 | function-patch-and-transform | `function-patch-and-transform-` |
 
-All default to `hermetic: "true"`. Fork PRs may require a maintainer trigger to run Konflux pipelines.
+Fork PRs may require a maintainer trigger to run Konflux pipelines.
 
 ## Helm Chart
 
 The chart at `charts/crossplane/` is vendored from `core/crossplane/cluster/charts/crossplane/`. All templates are identical to upstream. Only three things differ: `Chart.yaml` metadata (name, version, maintainers), `values.yaml` registry defaults (`image.repository`, `provider.packages`, `function.packages`), and `README.md`.
 
 ### Syncing after a submodule bump
+
+For the full step-by-step workflow see `skills/bump-component/`.
 
 ```bash
 rsync -a --delete --exclude='.git' \
@@ -120,7 +123,7 @@ After syncing, **manually restore** these repository-specific values:
 - **`Chart.yaml`** — `version` and `appVersion` must match the Crossplane release and the image you publish.
 - **`values.yaml`** — `image.repository`, and the OCI digest pins in `provider.packages` and `function.packages`.
 
-The `provider.packages` and `function.packages` lists carry full digest-pinned OCI references. Update them whenever component images are bumped — not just `image.repository`.
+Update `provider.packages` and `function.packages` with digest-pinned OCI references whenever component images are bumped — not just `image.repository`. The current `values.yaml` may use bare refs; add `@sha256:<digest>` when publishing a new component image.
 
 ## Dependency Updates
 
@@ -133,10 +136,19 @@ The `provider.packages` and `function.packages` lists carry full digest-pinned O
 ## PR Guidelines
 
 - Run `helm lint` and `helm template` before submitting chart changes (see **Validation**).
-- After bumping `core/crossplane`, run the `rsync` sync and restore `Chart.yaml` / `values.yaml` as described in **Helm Chart**.
+- After bumping `core/crossplane`, run the `rsync` sync and restore `Chart.yaml` / `values.yaml` as described in **Helm Chart**. For step-by-step instructions see `skills/bump-component/`.
 - New Go targets in `Containerfile` → add their `gomod` root to `prefetch-input` in all affected `.tekton/` PipelineRuns.
 - Do not edit base image digests in `Containerfile` without a scanner review; Renovate handles routine updates.
 - Submodule version bumps are normally opened by Renovate; manual bumps should use the same semver discipline (no pinning to non-release commits).
+
+## Skills
+
+Skills provide step-by-step procedures for complex workflows. Sections above define rules and constraints; skills provide the detailed how-to. Guides live in `skills/` — each subdirectory contains a `SKILL.md`:
+
+| Skill | When to use |
+|-------|-------------|
+| `skills/bump-component/` | Bumping a submodule version (controller, function, provider) including chart sync and digest pin updates |
+| `skills/pr-checklist/` | Definition of done and pre-PR validation steps |
 
 ## Code Style
 
