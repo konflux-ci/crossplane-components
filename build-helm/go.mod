@@ -2,7 +2,7 @@ module build-helm
 
 go 1.26.0
 
-require helm.sh/helm/v3 v3.21.1
+require helm.sh/helm/v3 v3.21.2
 
 require (
 	dario.cat/mergo v1.0.2 // indirect
