@@ -10,7 +10,7 @@
 # Inspect the full build tree: podman build --target build …
 
 # Builder image (UBI Go toolset) pinned by digest
-ARG GO_BUILD_IMAGE=registry.access.redhat.com/ubi9/go-toolset@sha256:16e8f98fb6f83ee327388d5603892b0021562e65c399ed75d344d3d70b81fd26
+ARG GO_BUILD_IMAGE=registry.access.redhat.com/ubi9/go-toolset@sha256:17c888d75753f128f6cbdc5587932c3abd2632ca8e0931aa27b9a60c7a75ac62
 
 FROM ${GO_BUILD_IMAGE} AS build
 
@@ -90,7 +90,7 @@ RUN set -eux; \
 
 RUN cp /tmp/crossplane /workspace/dist/bin/crossplane
 
-FROM registry.access.redhat.com/ubi9-minimal@sha256:850143255ee0d1915f09aaa09f6ed31f24086ba605c323badfbefa95b8c52b0e
+FROM registry.access.redhat.com/ubi9-minimal@sha256:44bc70ef6e6ea9a70e353be97f4722e10358d09fbb9494ca943b2a641049690e
 
 LABEL name="crossplane" \
 	vendor="Red Hat, Inc." \
