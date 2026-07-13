@@ -130,7 +130,7 @@ Update `provider.packages` and `function.packages` with digest-pinned OCI refere
 **Renovate / MintMaker** (`renovate.json`) owns all of the following — **do not update manually**:
 
 - Submodule refs — semver tags only; digest-only bumps are disabled. Patch updates automerge; minor and major require review.
-- Go module versions — patch/minor automerge; major updates for indirect deps disabled.
+- Go module versions — patch/minor automerge for direct deps; all updates for indirect deps disabled (resolved by `go mod tidy`).
 - Base image digests in `Containerfile` — grouped as `container-digest`, automerged.
 
 ## PR Guidelines
