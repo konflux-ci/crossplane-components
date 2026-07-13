@@ -5,6 +5,15 @@
     "enabled": true,
     "versioning": "semver"
   },
+  "gomod": {
+    "packageRules": [
+      {
+        "description": "Disable updates for indirect Go dependencies since they are resolved by go mod tidy based on direct dependency requirements",
+        "matchDepTypes": ["indirect"],
+        "enabled": false
+      }
+    ]
+  },
   "packageRules": [
     {
       "description": "Disable digest updates for submodules (keep patch/minor/major via tags)",
@@ -17,13 +26,6 @@
       "matchManagers": ["gomod"],
       "matchUpdateTypes": ["digest", "patch", "minor"],
       "automerge": true
-    },
-    {
-      "description": "Disable major version updates for indirect Go dependencies since they are resolved by go mod tidy based on direct dependency requirements",
-      "matchManagers": ["gomod"],
-      "matchDepTypes": ["indirect"],
-      "matchUpdateTypes": ["major"],
-      "enabled": false
     },
     {
       "description": "Group container image digest updates and auto-merge",
