@@ -41,7 +41,7 @@ rsync -a --delete --exclude='.git' \
   core/crossplane/cluster/charts/crossplane/ charts/crossplane/
 ```
 
-Then **manually restore** the three repository-specific overrides that `rsync` will have clobbered:
+Then **manually restore** the repository-specific overrides that `rsync` will have clobbered:
 
 ### `charts/crossplane/Chart.yaml`
 - `name` → must remain `crossplane-konflux-ci`
@@ -55,7 +55,25 @@ Then **manually restore** the three repository-specific overrides that `rsync` w
 - `provider.packages` → keep existing ref (see Step 3)
 - `function.packages` → keep existing refs (see Step 3)
 
-> Tip: run `git diff charts/crossplane/Chart.yaml charts/crossplane/values.yaml` after rsync to confirm only the expected upstream changes came in.
+### Template deviations (nameOverride fix)
+
+The following templates contain intentional deviations from upstream that
+`rsync` will overwrite. Re-apply them after syncing:
+
+- **`charts/crossplane/templates/deployment.yaml`** — replace `.Chart.Name`
+  with `{{ template "crossplane.name" . }}` for all container and init
+  container `name` and `containerName` fields (6 substitutions)
+- **`charts/crossplane/templates/rbac-manager-deployment.yaml`** — same
+  replacement (6 substitutions)
+
+These changes ensure `nameOverride` is respected for container names.
+See commit `d18867b` for the exact diff.
+
+> **Remove this subsection** once upstream PR
+> [crossplane/crossplane#7589](https://github.com/crossplane/crossplane/pull/7589)
+> is merged and the submodule is synced to a release containing the fix.
+
+> Tip: run `git diff charts/crossplane/` after rsync to confirm only the expected upstream changes came in and that the template deviations have been re-applied.
 
 ---
 
