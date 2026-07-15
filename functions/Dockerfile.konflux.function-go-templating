@@ -2,7 +2,7 @@
 # Parent repo path (submodule stays upstream Dockerfile for local/CI).
 # Build context: path-context "functions" (COPY paths use go-templating/…).
 
-ARG GO_BUILD_IMAGE=registry.access.redhat.com/ubi9/go-toolset@sha256:b471d69d4bf8a0aeac420f0e38777b1e38a59f7e805cba3e1c03d0066a1961af
+ARG GO_BUILD_IMAGE=registry.access.redhat.com/ubi9/go-toolset@sha256:e1ff4f548dfca084c2318d11dccd7d30a75c81a3a4fd8abcebc42ea42dd683e8
 
 FROM ${GO_BUILD_IMAGE} AS build
 
@@ -24,7 +24,7 @@ RUN if [ -f /cachi2/cachi2.env ]; then . /cachi2/cachi2.env; fi && \
 # containing the function metadata and all CRDs as a multi-document YAML stream.
 RUN sed -s '1i---' package/crossplane.yaml package/input/*.yaml > /tmp/package.yaml
 
-FROM registry.access.redhat.com/ubi9-minimal@sha256:463cae32c6f6f5594b11a5c22de275016bd8545ce58a6373388e8b24f13fc15c
+FROM registry.access.redhat.com/ubi9-minimal@sha256:062c52ff973065752b0965787649db2bcf551a6c727a00e95a3eb42cebadbdab
 
 ARG VERSION=0.12.0
 ARG RELEASE=1
