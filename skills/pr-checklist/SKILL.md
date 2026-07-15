@@ -15,6 +15,10 @@ This repo has no unit test suite. Validation is done through Helm tooling and a 
 - [ ] `git submodule status` — confirm no unintended submodule changes (dirty or unexpected refs)
 - [ ] `podman build -f Containerfile --target build -t crossplane-components:build .` — compile-checks all Go targets; a failure here means a submodule bump is broken
 
+### If skills or documentation changed (`skills/**`, `AGENTS.md`)
+
+- [ ] No bare commit SHAs in prose — prefer PR/issue numbers, inline descriptions, or cross-references to AGENTS.md
+
 ### If chart files changed (`charts/crossplane/**`)
 
 - [ ] `helm lint charts/crossplane`

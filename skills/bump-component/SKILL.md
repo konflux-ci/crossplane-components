@@ -67,7 +67,7 @@ The following templates contain intentional deviations from upstream that
   replacement (6 substitutions)
 
 These changes ensure `nameOverride` is respected for container names.
-See commit `d18867b` for the exact diff.
+See [Current template deviations from upstream](../../AGENTS.md#current-template-deviations-from-upstream) in AGENTS.md for the authoritative deviation table and upstream PR link.
 
 > **Remove this subsection** once upstream PR
 > [crossplane/crossplane#7589](https://github.com/crossplane/crossplane/pull/7589)
