@@ -21,7 +21,7 @@ There is no root `Makefile`. The build contract is `Containerfile` + `.tekton/` 
 | `functions/auto-ready` | Submodule → [crossplane-contrib/function-auto-ready](https://github.com/crossplane-contrib/function-auto-ready) |
 | `functions/patch-and-transform` | Submodule → [crossplane-contrib/function-patch-and-transform](https://github.com/crossplane-contrib/function-patch-and-transform) |
 | `providers/kubernetes` | Submodule → [crossplane-contrib/provider-kubernetes](https://github.com/crossplane-contrib/provider-kubernetes) |
-| `charts/crossplane/` | Helm chart vendored from `core/crossplane/cluster/charts/crossplane/`; templates are identical to upstream — only `Chart.yaml` metadata and `values.yaml` registry defaults differ |
+| `charts/crossplane/` | Helm chart vendored from `core/crossplane/cluster/charts/crossplane/`; templates are mostly identical to upstream with targeted deviations where upstream fixes are pending (see [Helm Chart](#helm-chart)) — `Chart.yaml` metadata, `values.yaml` registry defaults, and listed template overrides differ |
 | `build-helm/` | Minimal Go module whose only purpose is to let Hermeto/Cachi2 prefetch the Helm CLI source tree used in `Containerfile` |
 | `Containerfile` | Multi-stage UBI build: compiles all submodule Go targets + Helm CLI, packages the chart, produces the final controller image |
 | `.tekton/` | 12 Konflux PipelineRuns (push + pull-request for controller, chart, provider, three functions) |
@@ -107,7 +107,16 @@ Fork PRs may require a maintainer trigger to run Konflux pipelines.
 
 ## Helm Chart
 
-The chart at `charts/crossplane/` is vendored from `core/crossplane/cluster/charts/crossplane/`. All templates are identical to upstream. Only three things differ: `Chart.yaml` metadata (name, version, maintainers), `values.yaml` registry defaults (`image.repository`, `provider.packages`, `function.packages`), and `README.md`.
+The chart at `charts/crossplane/` is vendored from `core/crossplane/cluster/charts/crossplane/`. Templates are mostly identical to upstream, with targeted deviations where upstream fixes are pending. Four things differ: `Chart.yaml` metadata (name, version, maintainers), `values.yaml` registry defaults (`image.repository`, `provider.packages`, `function.packages`), `README.md`, and the template overrides listed below.
+
+#### Current template deviations from upstream
+
+| File | Change | Reason | Upstream PR |
+|------|--------|--------|-------------|
+| `templates/deployment.yaml` | `.Chart.Name` → `{{ template "crossplane.name" . }}` for container and init container `name` and `containerName` fields | Fixes `nameOverride` support for container names | [crossplane/crossplane#7589](https://github.com/crossplane/crossplane/pull/7589) |
+| `templates/rbac-manager-deployment.yaml` | `.Chart.Name` → `{{ template "crossplane.name" . }}` for container and init container `name` and `containerName` fields | Same fix | Same |
+
+> **Remove these deviations** once the upstream PR is merged and the `core/crossplane` submodule is synced to a release containing the fix.
 
 ### Syncing after a submodule bump
 
@@ -122,6 +131,7 @@ After syncing, **manually restore** these repository-specific values:
 
 - **`Chart.yaml`** — `version` and `appVersion` must match the Crossplane release and the image you publish.
 - **`values.yaml`** — `image.repository`, and the OCI digest pins in `provider.packages` and `function.packages`.
+- **Template deviations** — re-apply the changes listed in [Current template deviations from upstream](#current-template-deviations-from-upstream) above. The rsync will overwrite them with the upstream versions.
 
 Update `provider.packages` and `function.packages` with digest-pinned OCI references whenever component images are bumped — not just `image.repository`. The current `values.yaml` may use bare refs; add `@sha256:<digest>` when publishing a new component image.
 
