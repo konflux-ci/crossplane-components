@@ -10,7 +10,7 @@
 # Inspect the full build tree: podman build --target build …
 
 # Builder image (UBI Go toolset) pinned by digest
-ARG GO_BUILD_IMAGE=registry.access.redhat.com/ubi9/go-toolset@sha256:91d07f2b7f402fe2379fd62eb2fff975c814a595e2ff2988fd7c580568f5f90c
+ARG GO_BUILD_IMAGE=registry.access.redhat.com/ubi9/go-toolset@sha256:f99dd81b20e5971ef9f63a51ac27cf0aa591ff9921d021490548b67fd9b17144
 
 FROM ${GO_BUILD_IMAGE} AS build
 
