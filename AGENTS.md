@@ -90,6 +90,14 @@ podman build -f Containerfile --target build -t crossplane-components:build .
 
 A failing build stage means a submodule bump introduced a compilation break — fix the submodule version, not the upstream source.
 
+## Single-file verification
+
+```bash
+cd build-helm
+golangci-lint run tools.go
+go vet tools.go
+```
+
 ## CI Checks
 
 Twelve PipelineRuns in `.tekton/` fire on push and pull-request:
