@@ -107,16 +107,25 @@ Fork PRs may require a maintainer trigger to run Konflux pipelines.
 
 ## Helm Chart
 
-The chart at `charts/crossplane/` is vendored from `core/crossplane/cluster/charts/crossplane/`. Templates are mostly identical to upstream, with targeted deviations where upstream fixes are pending. Four things differ: `Chart.yaml` metadata (name, version, maintainers), `values.yaml` registry defaults (`image.repository`, `provider.packages`, `function.packages`), `README.md`, and the template overrides listed below.
+The chart at `charts/crossplane/` is vendored from
+`core/crossplane/cluster/charts/crossplane/`. Most chart content and templates
+remain aligned with upstream. Preserve the customizations and temporary patches
+below when syncing.
 
-#### Current template deviations from upstream
+#### Konflux distribution customizations
 
-| File | Change | Reason | Upstream PR |
-|------|--------|--------|-------------|
-| `templates/deployment.yaml` | `.Chart.Name` → `{{ template "crossplane.name" . }}` for container and init container `name` and `containerName` fields | Fixes `nameOverride` support for container names | [crossplane/crossplane#7589](https://github.com/crossplane/crossplane/pull/7589) |
-| `templates/rbac-manager-deployment.yaml` | `.Chart.Name` → `{{ template "crossplane.name" . }}` for container and init container `name` and `containerName` fields | Same fix | Same |
+| File | Customization | Reason |
+|------|---------------|--------|
+| `Chart.yaml` | Konflux chart name, version, description, and maintainers | Identifies the Konflux-built distribution |
+| `values.yaml` | Konflux image and package defaults; `rbacManager.deploy: false` | Uses Konflux artifacts and avoids the RBAC manager's cluster-admin-equivalent trust boundary |
+| `README.md` | Konflux installation, release, and static RBAC guidance | Documents distribution-specific behavior |
 
-> **Remove these deviations** once the upstream PR is merged and the `core/crossplane` submodule is synced to a release containing the fix.
+#### Temporary template patches
+
+| File | Patch | Remove when |
+|------|-------|-------------|
+| `templates/deployment.yaml` | `.Chart.Name` → `{{ template "crossplane.name" . }}` for container and init container `name` and `containerName` fields | The `core/crossplane` submodule includes [crossplane/crossplane#7589](https://github.com/crossplane/crossplane/pull/7589) |
+| `templates/rbac-manager-deployment.yaml` | Same patch | The `core/crossplane` submodule includes the upstream fix |
 
 ### Syncing after a submodule bump
 
@@ -127,11 +136,10 @@ rsync -a --delete --exclude='.git' \
   core/crossplane/cluster/charts/crossplane/ charts/crossplane/
 ```
 
-After syncing, **manually restore** these repository-specific values:
-
-- **`Chart.yaml`** — `version` and `appVersion` must match the Crossplane release and the image you publish.
-- **`values.yaml`** — `image.repository`, and the OCI digest pins in `provider.packages` and `function.packages`.
-- **Template deviations** — re-apply the changes listed in [Current template deviations from upstream](#current-template-deviations-from-upstream) above. The rsync will overwrite them with the upstream versions.
+After syncing, **manually restore the customizations and any temporary patches
+that are still required**. Confirm that `Chart.yaml` versions match the Crossplane
+release and published image, and that package references in `values.yaml` remain
+digest-pinned.
 
 Update `provider.packages` and `function.packages` with digest-pinned OCI references whenever component images are bumped — not just `image.repository`. The current `values.yaml` may use bare refs; add `@sha256:<digest>` when publishing a new component image.
 
@@ -146,7 +154,9 @@ Update `provider.packages` and `function.packages` with digest-pinned OCI refere
 ## PR Guidelines
 
 - Run `helm lint` and `helm template` before submitting chart changes (see **Validation**).
-- After bumping `core/crossplane`, run the `rsync` sync and restore `Chart.yaml` / `values.yaml` as described in **Helm Chart**. For step-by-step instructions see `skills/bump-component/`.
+- After bumping `core/crossplane`, run the `rsync` sync and restore the deviations
+  listed under **Helm Chart**. For step-by-step instructions see
+  `skills/bump-component/`.
 - New Go targets in `Containerfile` → add their `gomod` root to `prefetch-input` in all affected `.tekton/` PipelineRuns.
 - Do not edit base image digests in `Containerfile` without a scanner review; Renovate handles routine updates.
 - Submodule version bumps are normally opened by Renovate; manual bumps should use the same semver discipline (no pinning to non-release commits).

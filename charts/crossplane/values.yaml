@@ -96,7 +96,7 @@ webhooks:
 
 rbacManager:
   # -- Deploy the RBAC Manager and its RBAC objects.
-  deploy: true
+  deploy: false
   # -- Omit installation of aggregated ClusterRoles for Crossplane (use when managing RBAC externally).
   skipAggregatedClusterRoles: false
   # -- Replica count for the RBAC Manager Deployment.
