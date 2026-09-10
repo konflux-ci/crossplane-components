@@ -24,6 +24,7 @@ The upstream values reference and release notes remain in `core/crossplane/clust
 |------|----------|
 | **`image.repository`** | `quay.io/konflux-ci/crossplane-components/crossplane` — public image built from this repository. Override for private registries or alternate promotion paths. |
 | **`image.tag`** | Empty — chart uses `v` plus `Chart.yaml` `appVersion`. CI often publishes images tagged by Git revision; set `image.tag` (or use digests) to match the image running in production. |
+| **`rbacManager.deploy`** | `false` — providers and CompositeResourceDefinitions require externally managed RBAC. |
 
 `provider.packages`, `configuration.packages`, and `function.packages` default to empty lists. Populate with full OCI references for packages you install with the release, for example:
 
@@ -37,6 +38,17 @@ function:
 ```
 
 Configure **`imagePullSecrets`** when clusters pull from authenticated registries.
+
+## RBAC manager security
+
+The RBAC manager is disabled by default because it needs `escalate` and `bind`
+permissions and unrestricted access to ClusterRoleBindings. These permissions make
+its ServiceAccount a cluster-admin-equivalent trust anchor.
+
+Installations should grant the Crossplane controller and each provider only the
+static permissions required by their installed CompositeResourceDefinitions and
+provider APIs. Set `rbacManager.deploy=true` only when dynamic permission management
+is required and the elevated trust boundary is explicitly accepted.
 
 ## Release and automation workflow
 
