@@ -21,6 +21,10 @@ Aggregate repository for Crossplane core, composition functions, provider-kubern
 - **Provider** — Kubernetes provider (separate build and package lifecycle from the controller image).
 - **Helm chart** — Install path for the controller; see `charts/crossplane/README.md`.
 
+## Usage
+
+Install and configure the controller with Helm: [charts/crossplane/README.md](charts/crossplane/README.md).
+
 ## Dependency updates
 
 **Renovate** (`renovate.json`) drives MintMaker: submodule updates follow **semver tags** only; digest-only bumps are disabled to keep upgrades reviewable.
