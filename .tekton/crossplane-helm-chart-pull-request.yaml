@@ -31,8 +31,6 @@ spec:
       value: charts/Dockerfile.konflux.crossplane-chart
     - name: path-context
       value: charts/crossplane
-    - name: hermetic
-      value: "false"
     - name: prefetch-input
       value: '[{"type":"gomod","path":"build-helm"}]'
   pipelineSpec:
@@ -65,7 +63,7 @@ spec:
         description: Skip checks against built image
         name: skip-checks
         type: string
-      - default: "false"
+      - default: "true"
         description: Execute the build with network isolation
         name: hermetic
         type: string
