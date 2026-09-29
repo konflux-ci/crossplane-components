@@ -161,6 +161,13 @@ Update `provider.packages` and `function.packages` with digest-pinned OCI refere
 - Do not edit base image digests in `Containerfile` without a scanner review; Renovate handles routine updates.
 - Submodule version bumps are normally opened by Renovate; manual bumps should use the same semver discipline (no pinning to non-release commits).
 
+### Tekton task version bumps
+
+When `.tekton/` pipeline files update task bundle versions (especially minor or major bumps):
+
+- Check whether any `taskRunSpecs` or `stepSpecs` blocks in the pipeline files override resource requests/limits for steps in the updated task. If they do, verify that `requests` values do not exceed `limits` values after the update, as Kubernetes rejects pods where a resource request exceeds its limit.
+- Minor version bumps of pre-1.0 tasks can introduce breaking changes. Do not assume backwards compatibility — check the task's release notes (linked in the Renovate PR body) for resource, parameter, or step changes that could conflict with existing pipeline overrides.
+
 ## Skills
 
 Skills provide step-by-step procedures for complex workflows. Sections above define rules and constraints; skills provide the detailed how-to. Guides live in `skills/` — each subdirectory contains a `SKILL.md`:
