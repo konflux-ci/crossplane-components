@@ -28,13 +28,14 @@ This repo has no unit test suite. Validation is done through Helm tooling and a 
 
 ### If `Containerfile` changed
 
-- [ ] New Go compilation target? → add its `gomod` path to `prefetch-input` in **every** affected `.tekton/` PipelineRun
+- [ ] New Go compilation target? → add its `gomod` path to `prefetch-input` in **every** Containerfile-based `.tekton/` PipelineRun that compiles it (not `crossplane-helm-chart-*`)
 - [ ] Base image digest changed? → only update intentionally after scanner review; routine digest bumps are Renovate's job
 
 ### If `.tekton/` PipelineRun changed
 
-- [ ] New PipelineRun preserves the hermetic default for its pipeline type (`"true"` for controller, `"false"` for chart/functions/provider)
-- [ ] `prefetch-input` lists every `gomod` root compiled by that pipeline's `Containerfile` invocation
+- [ ] New PipelineRun preserves `hermetic` default `"true"` (controller, functions, provider, and Helm chart pipelines all use this)
+- [ ] For Containerfile-based builds: `prefetch-input` lists every `gomod` root compiled by that pipeline's `Containerfile` invocation
+- [ ] Helm chart PipelineRuns (`crossplane-helm-chart-*`) use `build-helm-chart-oci-ta` and do not need `prefetch-input` / Hermeto gomod prefetch
 
 ### If submodule ref changed
 
@@ -45,7 +46,7 @@ This repo has no unit test suite. Validation is done through Helm tooling and a 
 
 ## CI behaviour
 
-Twelve PipelineRuns in `.tekton/` fire on every PR. A missing `prefetch-input` entry fails silently in local networked builds but breaks the hermetic pipeline.
+Twelve PipelineRuns in `.tekton/` fire on every PR. For hermetic Containerfile builds, a missing `prefetch-input` entry fails silently in local networked builds but breaks the hermetic pipeline. Chart pipelines build via `build-helm-chart-oci-ta` and do not consume prefetch.
 
 Fork PRs require a maintainer trigger before Konflux pipelines run.
 
