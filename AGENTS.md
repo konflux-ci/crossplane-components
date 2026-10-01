@@ -62,7 +62,7 @@ podman run --rm localhost/crossplane-components:local --help
 
 ### Hermetic / prefetch (Konflux)
 
-The `crossplane-components-*` pipelines run with `hermetic: "true"` — the network is cut after Cachi2 prefetches Go modules. Function, provider, and Helm chart pipelines default to `hermetic: "false"`. Every `gomod` root compiled by `Containerfile` must appear in `prefetch-input` in the relevant `.tekton/` PipelineRun:
+The `crossplane-components-*` pipelines run with `hermetic: "true"` — the network is cut after Cachi2 prefetches Go modules. Function, provider, and Helm chart pipelines also default to `hermetic: "true"`. The Helm chart PipelineRuns use `build-helm-chart-oci-ta` and do not prefetch Go modules. Every `gomod` root compiled by `Containerfile` must appear in `prefetch-input` in the relevant `.tekton/` PipelineRun:
 
 ```
 core/crossplane
@@ -182,5 +182,5 @@ Skills provide step-by-step procedures for complex workflows. Sections above def
 - This repo does not patch or cherry-pick upstream code. If a submodule version introduces a build break, roll it back or wait for an upstream fix.
 - The `Containerfile` build stage intentionally compiles all submodule Go targets as a **compile-check** — a red build stage is the first signal that a submodule bump is broken.
 - `build-helm/` exists solely so Hermeto can prefetch the Helm CLI's Go module tree. Helm is compiled from source rather than installed via a package manager to satisfy hermetic build requirements.
-- The Helm chart OCI artifact (`charts/Dockerfile.konflux.crossplane-chart`) and the controller image have independent pipelines and release lifecycles — bumping one does not require releasing the other.
+- The Helm chart OCI artifact (built by `crossplane-helm-chart-*` via `build-helm-chart-oci-ta`) and the controller image have independent pipelines and release lifecycles — bumping one does not require releasing the other.
 - Upstream components are pinned via submodule SHAs that correspond to semver tags. Renovate tracks semver and opens PRs; the SHA in `.gitmodules` is what the build actually uses.
