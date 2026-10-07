@@ -169,6 +169,7 @@ Skills provide step-by-step procedures for complex workflows. Sections above def
 |-------|-------------|
 | `skills/bump-component/` | Bumping a submodule version (controller, function, provider) including chart sync and digest pin updates |
 | `skills/pr-checklist/` | Definition of done and pre-PR validation steps |
+| `skills/retro-filing-policy/` | Retro output (PR close or `/fs-retro`). Keep `proposals` empty unless the human comment explicitly says to file issues. |
 
 ## Code Style
 
