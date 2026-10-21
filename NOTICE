@@ -1,0 +1,41 @@
+Konflux Crossplane Components
+Copyright Red Hat and the collected contributors to Konflux
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+The root LICENSE applies to Konflux-authored material in this repository
+(for example build and pipeline configuration, Containerfile, build-helm,
+skills, and Konflux-specific chart customizations). It does not replace the
+licenses of upstream projects included here.
+
+---------------------------------------------------------------------------
+Third-party / upstream notices
+---------------------------------------------------------------------------
+
+Git submodules (upstream Apache License 2.0)
+--------------------------------------------
+
+The following paths are git submodules. Each retains its own upstream
+copyright and Apache License 2.0 terms when the submodule is initialized:
+
+- core/crossplane
+  Upstream: https://github.com/crossplane/crossplane
+- functions/go-templating
+  Upstream: https://github.com/crossplane-contrib/function-go-templating
+- functions/auto-ready
+  Upstream: https://github.com/crossplane-contrib/function-auto-ready
+- functions/patch-and-transform
+  Upstream: https://github.com/crossplane-contrib/function-patch-and-transform
+- providers/kubernetes
+  Upstream: https://github.com/crossplane-contrib/provider-kubernetes
+
+See each submodule's LICENSE (and any NOTICE) after:
+  git submodule update --init --recursive
+
+Vendored Helm chart
+-------------------
+
+charts/crossplane is a vendored copy of the upstream Crossplane cluster
+Helm chart (from core/crossplane/cluster/charts/crossplane), with image and
+defaults adjusted for this project. The chart ships its own Apache License
+2.0 text at charts/crossplane/LICENSE.
